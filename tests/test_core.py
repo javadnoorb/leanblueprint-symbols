@@ -116,3 +116,7 @@ def test_component_of_a_declared_vector():
             "defines": []}
     probs = check([WIRING, item])
     assert not [p for p in probs if p["detail"].startswith("x ")]
+
+
+def test_scripts_after_spaces():
+    assert ("\\sigma", True, "") in tokens(r"\sigma _e") and ("A", True, "") in tokens(r"A _{S}")

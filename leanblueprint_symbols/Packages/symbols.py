@@ -49,7 +49,23 @@ STATUS_COLORS = {"verified": ("#1CAC78", "Dark green"), "stated": ("green", "Gre
 
 
 def _text(x) -> str:
-    return x.source if hasattr(x, "source") else str(x)
+    """The TeX of an argument; plasTeX turns ' into a typographic quote in text arguments: undo that."""
+    t = x.source if hasattr(x, "source") else str(x)
+    return t.replace("\u2019", "'").replace("\u2018", "`")
+
+
+def _split(src: str) -> list[str]:
+    """Split a comma-separated list at top-level commas (commas inside braces stay)."""
+    out, depth, cur = [], 0, ""
+    for ch in src:
+        depth += {"{": 1, "}": -1}.get(ch, 0)
+        if ch == "," and depth == 0:
+            out.append(cur)
+            cur = ""
+        else:
+            cur += ch
+    out.append(cur)
+    return [re.sub(r"\s+", " ", x).strip() for x in out if x.strip()]
 
 
 class defines(Command):
@@ -64,11 +80,11 @@ class defines(Command):
 
 class binds(Command):
     r"""\binds{a,b,...}"""
-    args = "syms:list:nox"
+    args = "syms"
 
     def digest(self, tokens):
         Command.digest(self, tokens)
-        self.parentNode.userdata.setdefault("binds", []).extend(s.strip() for s in self.attributes["syms"])
+        self.parentNode.userdata.setdefault("binds", []).extend(_split(_text(self.attributes["syms"])))
 
 
 class defterm(Command):
@@ -121,7 +137,11 @@ def ProcessOptions(options, document):
                 terms += d.userdata.get("terms", []) if hasattr(d, "userdata") else []
             maths = [m for m in n.getElementsByTagName(("math", "displaymath", "equation", "equation*", "align",
                                                          "align*")) if _owner(m.parentNode, ids) is n]
-            items.append({"label": n.id, "kind": getattr(n, "tagName", n.nodeName), "defines": defs, "binds": bnds, "terms": terms,
+            kind = getattr(n, "tagName", n.nodeName)
+            label = n.id
+            if re.fullmatch(r"a\d+", label or ""):     # no \label: name it by what it is
+                label = f"proof of {parent_label}" if parent_label else kind
+            items.append({"label": label, "kind": kind, "defines": defs, "binds": bnds, "terms": terms,
                           "math": [m.source for m in maths], "text": n.textContent, "parent": parent_label,
                           "node": n})
         return items

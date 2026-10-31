@@ -35,7 +35,7 @@ STANDARD = {
     r"\circ", r"\det", r"\log", r"\exp", r"\max", r"\min", r"\sup", r"\inf", r"\lim", r"\sqrt", r"\frac", r"\dfrac",
     r"\tfrac", r"\partial", r"\nabla", r"\forall", r"\exists", r"\iff", r"\implies", r"\Rightarrow", r"\Leftarrow",
     r"\Leftrightarrow", r"\Longrightarrow", r"\Longleftrightarrow", r"\land", r"\lor", r"\neg", r"\wedge", r"\vee",
-    r"\approx", r"\equiv", r"\sim", r"\ll", r"\gg", r"\prime", r"\top", r"\square", r"\qquad", r"\quad",
+    r"\approx", r"\equiv", r"\dashv", r"\vdash", r"\leftrightarrow", r"\mid", r"\sqcup", r"\sqsubseteq", r"\colon", r"\ast", r"\sim", r"\ll", r"\gg", r"\prime", r"\top", r"\square", r"\qquad", r"\quad",
 }
 LAYOUT = {  # commands that only shape the formula
     r"\left", r"\right", r"\bigl", r"\bigr", r"\Bigl", r"\Bigr", r"\biggl", r"\biggr", r"\big", r"\Big", r"\,",
@@ -122,7 +122,13 @@ def _scan(s: str, lo: int, hi: int) -> list:
         if base is None:
             continue
         has_sub, deco = False, ""
-        while i < hi and s[i] in "_^'":
+        while True:   # scripts may follow after spaces (plasTeX writes "\\sigma _e")
+            k = i
+            while k < hi and s[k] == " ":
+                k += 1
+            if k >= hi or s[k] not in "_^'":
+                break
+            i = k
             if s[i] == "'":
                 base += "'"
                 i += 1
