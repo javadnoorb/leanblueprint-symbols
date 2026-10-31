@@ -142,7 +142,32 @@ nav.prev_up_next:empty { display: none; }
 /* the dependency graph page */
 body > header { background: var(--r-soft) !important; color: var(--r-fg) !important; border-bottom: 1px solid var(--r-line); }
 h1#doc_title { color: var(--r-fg) !important; font-size: 1.1rem !important; }
-#Legend dl, div#statements { background: var(--r-panel) !important; color: var(--r-fg); border: 1px solid var(--r-line); border-radius: 8px; padding: 8px 12px; }
+#Legend dl { background: var(--r-panel) !important; color: var(--r-fg); border: 1px solid var(--r-line); border-radius: 8px; padding: 8px 12px; }
+/* a node's statement (opened by clicking the node): the theme's panel, not plastexdepgraph's fixed white */
+div#statements { background: transparent !important; }
+div.dep-modal-container { left: 50% !important; transform: translateX(-50%); margin: 0 !important; top: 3.6rem !important;
+  width: min(44rem, calc(100vw - 24px)) !important; z-index: 30; }
+div.dep-modal-content { position: relative; background: var(--r-panel) !important; color: var(--r-fg) !important;
+  border: 1px solid var(--r-line) !important; border-left: 3px solid var(--r-thm) !important; border-radius: 10px !important;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, .35) !important; padding: 12px 48px 12px 16px !important; max-height: 70vh;
+  font: 400 calc(var(--r-size) * .95)/1.6 var(--r-sans); }
+div.dep-modal-content .thm_thmheading { font-weight: 600; margin-bottom: 4px; display: flex; flex-wrap: wrap; gap: 0 8px; }
+div.dep-modal-content span[class$="_thmcaption"] { color: var(--r-thm); }
+div.dep-modal-content span[class*="definition_"][class$="_thmcaption"] { color: var(--r-def); }
+div.dep-modal-content span[class$="_thmlabel"] { color: var(--r-fg); }
+div.dep-modal-content span[class$="_thmtitle"] { color: var(--r-mut); font-weight: 500; }
+div.dep-modal-content span[class$="_thmtitle"]::before { content: "("; } div.dep-modal-content span[class$="_thmtitle"]::after { content: ")"; }
+div.dep-modal-content .thm_thmcontent p { margin: .3em 0 .6em; }
+div.dep-modal-content mjx-container { color: var(--r-fg); }
+div.dep-modal-content a.latex_link, div.dep-modal-content a.lean_link, div.dep-modal-content a.issue_link {
+  display: inline-flex; align-items: center; min-height: 32px; padding: 0 12px !important; margin: 4px 6px 2px 0;
+  border: 1px solid var(--r-line); border-radius: 8px; background: var(--r-soft); color: var(--r-link) !important;
+  font: 500 14px var(--r-sans) !important; text-decoration: none; }
+div.dep-modal-content a.latex_link:hover, div.dep-modal-content a.lean_link:hover { border-color: var(--r-link); }
+button.dep-closebtn { top: 8px !important; right: 8px !important; width: 36px; height: 36px; border-radius: 8px;
+  color: var(--r-mut) !important; display: grid; place-items: center; }
+button.dep-closebtn:hover { background: var(--r-soft); color: var(--r-fg) !important; }
+ul.tooltip_list { background: var(--r-panel) !important; color: var(--r-fg); border-color: var(--r-line) !important; }
 #Legend .bar { background-color: var(--r-fg) !important; }
 div#graph { height: calc(100vh - 3rem) !important; resize: none !important; }
 /* the graph keeps its status fills (the legend names them); lines and labels follow the theme, and a label on a
