@@ -1,0 +1,5 @@
+name: defines binds
+
+
+name: defterm
+<em class="defterm">{{ obj.attributes.term }}</em>

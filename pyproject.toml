@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "leanblueprint-symbols"
+version = "0.1.0"
+description = "Declared, checked and hyperlinked symbols for Lean blueprints (a plasTeX plugin next to leanblueprint)"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.10"
+dependencies = ["plasTeX>=3.1", "leanblueprint>=0.0.20"]
+
+[tool.setuptools]
+packages = ["leanblueprint_symbols", "leanblueprint_symbols.Packages"]
+
+[tool.setuptools.package-data]
+leanblueprint_symbols = ["static/*", "Packages/renderer_templates/*"]

@@ -1,0 +1,36 @@
+\documentclass{report}
+\usepackage{amsmath, amsthm}
+\usepackage{blueprint}
+\usepackage{symbols}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter]
+\newtheorem{lemma}[definition]{Lemma}
+\begin{document}
+\chapter{The model}
+
+\begin{definition}[annotated wiring]\label{def:wiring}
+  \defines{V}{set $\{1,\dots,n\}$}\defines{E}{finite set}\defines{W}{annotated wiring}\defines{s}{map $E\to V$}\defines{t}{map $E\to V$}\defines{\sigma}{map $E\to\{\pm1\}$}\defines{\nu}{map $E\to\{1,2,\dots\}$}
+  Fix an integer $n\ge1$ and let $V=\{1,\dots,n\}$. An annotated wiring on $V$ is $W=(E,s,t,\sigma,\nu)$.
+\end{definition}
+
+\begin{definition}[earlier objects, stub]\label{def:stub}
+  \defines{\Omega}{set $(0,\infty)^n$}\defines{\mathcal E}{map $\Omega\to\mathbb R^{n\times n}$}\defines{\eta}{elasticity operator}\defines{H_e}{function $(0,\infty)\to(0,\infty)$}
+  Stub standing for Definitions 1.3--1.10 of the plan.
+\end{definition}
+
+\begin{definition}[matrix unit]\label{def:matrix-unit}
+  \uses{def:wiring}
+  \defines{M_e}{matrix in $\mathbb R^{n\times n}$}\binds{e,k,l}
+  For an edge $e$, $M_e\in\mathbb R^{n\times n}$ with $(M_e)_{kl}=1$ if $k=t(e)$ and $l=s(e)$, and $0$ otherwise.
+\end{definition}
+
+\begin{lemma}[the box]\label{lem:box}
+  \uses{def:matrix-unit}
+  \binds{x,e}
+  For every $x\in\Omega$,
+  \[ \mathcal E(x)=\sum_{e\in E}\eta[H_e]\bigl(x_{s(e)}\bigr)\,M_e . \]
+\end{lemma}
+\begin{proof}
+  By the definition of $M_e$.
+\end{proof}
+\end{document}
