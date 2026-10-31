@@ -1,0 +1,159 @@
+/* leanblueprint-symbols reader theme (option `reader`): a reading column, light and dark, items set off by kind,
+   item tools reachable by touch, the page scrolling as a whole (plasTeX's theme scrolls an inner box). */
+:root {
+  --r-bg: #fbfaf7; --r-panel: #ffffff; --r-fg: #1c2420; --r-mut: #5f6b65; --r-line: #e2e0d8; --r-soft: #f1efe9;
+  --r-link: #1d5f8f; --r-link-h: #0f3f63; --r-hl: #fff2b8;
+  --r-def: #2f7d4f; --r-thm: #1d5f8f; --r-rem: #9a8f7a; --r-proof: #c9c5ba;
+  --r-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --r-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r-size: 17px; --r-measure: 44rem; --r-bar: 46px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --r-bg: #121714; --r-panel: #182019; --r-fg: #e3eae5; --r-mut: #98a69e; --r-line: #2a342e; --r-soft: #1d2620;
+    --r-link: #8cc3ea; --r-link-h: #b9dcf5; --r-hl: #3a3417;
+    --r-def: #74c895; --r-thm: #8cc3ea; --r-rem: #b5a988; --r-proof: #3a463f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --r-bg: #121714; --r-panel: #182019; --r-fg: #e3eae5; --r-mut: #98a69e; --r-line: #2a342e; --r-soft: #1d2620;
+  --r-link: #8cc3ea; --r-link-h: #b9dcf5; --r-hl: #3a3417;
+  --r-def: #74c895; --r-thm: #8cc3ea; --r-rem: #b5a988; --r-proof: #3a463f; color-scheme: dark;
+}
+
+/* the page scrolls as a whole, so links, the browser's Back and the reader's Back all keep their place */
+html, body { height: auto !important; overflow: visible !important; }
+body { display: block !important; margin: 0; background: var(--r-bg) !important; color: var(--r-fg) !important;
+  font: 400 var(--r-size)/1.65 var(--r-sans); -webkit-text-size-adjust: 100%; }
+div.wrapper, div.content { display: block !important; overflow: visible !important; margin: 0 !important; padding: 0 !important; }
+div.content { line-height: inherit; }
+div.content-wrapper { max-width: var(--r-measure); margin: 0 auto !important; padding: 12px 20px 96px; }
+div.content > p, div.main-text > p { margin: 1em 0; }
+p, h3, h4 { font-size: 1em; }
+::selection { color: inherit; background: color-mix(in srgb, var(--r-link) 30%, transparent); }
+
+h1, h2, h3, h4, h5, h6 { font-family: var(--r-sans); color: var(--r-fg) !important; text-wrap: balance; letter-spacing: -.01em; }
+.titlepage { text-align: left; padding: 28px 0 10px; border-bottom: 1px solid var(--r-line); margin-bottom: 8px; }
+.titlepage h1 { font-size: 2rem; line-height: 1.15; font-weight: 600; margin: 0 0 6px; }
+.titlepage .authors { color: var(--r-mut); margin: 0; font-size: .9em; }
+.main-text > h1 { font-size: 1.45rem; line-height: 1.25; font-weight: 600; margin: 2.4em 0 .6em; padding-top: .2em;
+  scroll-margin-top: calc(var(--r-bar) + 12px); }
+.main-text > h2 { font-size: 1.15rem; font-weight: 600; margin: 1.8em 0 .5em; scroll-margin-top: calc(var(--r-bar) + 12px); }
+
+a { color: var(--r-link); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a:hover { color: var(--r-link-h); }
+code, .ttfamily, .texttt { font-family: var(--r-mono); font-size: .86em; }
+ul, ol { font-size: 1em; padding-left: 1.4em; }
+li > p { margin: .3em 0; }
+
+/* formulas: symbol links are coloured, not underlined; wide displays scroll inside themselves */
+mjx-container { color: var(--r-fg); }
+mjx-container[jax] a { fill: var(--r-link) !important; stroke: var(--r-link) !important; color: var(--r-link); }
+mjx-container[jax] a:hover { fill: var(--r-link-h) !important; stroke: var(--r-link-h) !important; }
+mjx-container a rect[data-hitbox] { fill: none !important; stroke: none !important; }   /* MathJax's invisible hit area */
+mjx-container[display="true"], div.displaymath { overflow-x: auto; overflow-y: hidden; max-width: 100%; }
+mjx-container[display="true"] { padding: 2px 0; }
+
+/* items */
+div[class*="_thmwrapper"] { margin: 1.4em 0 .6em; padding: .7em 1em .75em; background: var(--r-panel);
+  border: 1px solid var(--r-line); border-left: 3px solid var(--r-k, var(--r-thm)); border-radius: 6px;
+  scroll-margin-top: calc(var(--r-bar) + 16px); }
+div.definition_thmwrapper, div.notation_thmwrapper { --r-k: var(--r-def); }
+div.remark_thmwrapper, div.example_thmwrapper { --r-k: var(--r-rem); background: transparent; }
+div[class*="_thmwrapper"]:target, .sym-hit { animation: r-hit 2.2s ease-out; }
+@keyframes r-hit { 0%, 35% { background: var(--r-hl); } 100% { } }
+div[class$="_thmheading"] { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; line-height: 1.4;
+  font-weight: 600; margin-bottom: .3em; }
+span[class$="_thmcaption"] { color: var(--r-k, var(--r-thm)); }
+span[class$="_thmlabel"] { margin: 0 0 0 -4px; }
+span[class$="_thmlabel"]::after { content: "" !important; }
+span[class$="_thmtitle"] { font-weight: 500; color: var(--r-mut); }
+div[class$="_thmcontent"] { margin: 0; padding: 0; }
+div[class$="_thmcontent"] > p:first-child { margin-top: 0; }
+div[class$="_thmcontent"] > p:last-child { margin-bottom: 0; }
+.defterm { font-style: normal; font-weight: 600; }
+
+/* the item's tools (link, proof, uses, Lean): always visible, quiet, big enough to tap */
+div.thm_header_extras:empty { display: none; }
+div.thm_header_hidden_extras { display: inline-flex !important; gap: 2px; align-items: center; margin-left: auto; opacity: .55; }
+div[class$="_thmheading"]:hover div.thm_header_hidden_extras, div.thm_header_hidden_extras:focus-within { opacity: 1; }
+div.thm_header_hidden_extras a.icon, div.thm_header_hidden_extras button.modal {
+  display: inline-grid; place-items: center; min-width: 30px; height: 30px; padding: 0 6px; border-radius: 6px;
+  color: var(--r-mut); font: 500 13px var(--r-sans); text-decoration: none; }
+div.thm_header_hidden_extras a.icon:hover, div.thm_header_hidden_extras button.modal:hover { background: var(--r-soft); color: var(--r-fg); }
+.icon { width: 16px; height: 16px; }
+a.icon { color: var(--r-mut); }
+
+/* proofs */
+div.proof_wrapper { margin: -.2em 0 1.2em; padding: .1em 0 .1em 1em; border-left: 2px solid var(--r-proof); }
+div.proof_heading { font-weight: 600; color: var(--r-mut); cursor: pointer; line-height: 1.4; padding: 4px 0;
+  user-select: none; }
+div.proof_heading:hover { color: var(--r-fg); }
+div.proof_content { margin: 0; padding: .2em 0 0; }
+div.proof_content.hilite { animation: r-hit 1.5s ease-out; }
+span.qed { float: right; color: var(--r-mut); }
+
+/* dialogs (uses, Lean) */
+div.modal-container { background: color-mix(in srgb, #000 45%, transparent); align-items: center; justify-content: center; padding: 16px; }
+div.modal-content { background: var(--r-panel) !important; color: var(--r-fg); border: 1px solid var(--r-line) !important;
+  border-radius: 10px !important; max-width: 30rem; width: 100%; max-height: 80vh; }
+div.modal-content header { background: var(--r-soft) !important; color: var(--r-fg) !important; padding: 6px 10px; border-radius: 10px 10px 0 0; }
+div.modal-content header h1 { color: var(--r-fg) !important; font-size: 1rem !important; }
+div.modal-content header button.closebtn { color: var(--r-mut) !important; min-width: 36px; min-height: 36px; }
+div.modal-content ul { padding: .6rem 1rem !important; }
+div.modal-content li { padding: .35rem .2rem !important; }
+div.modal-content a { color: var(--r-link); }
+
+nav.prev_up_next:empty { display: none; }
+
+/* reader toolbar and contents (reader.js) */
+#r-bar { position: sticky; top: 0; z-index: 20; height: var(--r-bar); display: flex; align-items: center; gap: 6px;
+  padding: 0 12px; background: color-mix(in srgb, var(--r-bg) 88%, transparent); backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--r-line); font: 500 14px var(--r-sans); }
+#r-bar button { font: inherit; color: var(--r-fg); background: transparent; border: 1px solid transparent; border-radius: 8px;
+  min-height: 34px; padding: 0 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+#r-bar button:hover, #r-bar button[aria-expanded="true"] { background: var(--r-soft); border-color: var(--r-line); }
+#r-bar .r-where { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--r-mut); }
+#r-bar .r-size { display: inline-flex; gap: 2px; }
+#r-toc { position: fixed; z-index: 30; top: var(--r-bar); left: 0; bottom: 0; width: min(22rem, 88vw); overflow-y: auto;
+  background: var(--r-panel); border-right: 1px solid var(--r-line); padding: 10px 8px 40px; font: 400 14px/1.35 var(--r-sans);
+  transform: translateX(-102%); transition: transform .18s ease; box-shadow: 0 0 0 100vmax transparent; }
+#r-toc.open { transform: none; box-shadow: 8px 0 30px rgba(0,0,0,.18); }
+#r-toc input { width: 100%; font: inherit; color: var(--r-fg); background: var(--r-bg); border: 1px solid var(--r-line);
+  border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; }
+#r-toc a { display: flex; gap: 8px; padding: 6px 8px; border-radius: 6px; color: var(--r-fg); text-decoration: none; }
+#r-toc a:hover, #r-toc a.cur { background: var(--r-soft); }
+#r-toc a.ch { font-weight: 600; margin-top: 10px; }
+#r-toc a .k { color: var(--r-mut); flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+#r-toc a .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (min-width: 1180px) {
+  body.r-wide #r-toc { transform: none; box-shadow: none; }
+  body.r-wide div.content-wrapper { margin-left: max(23rem, calc(50vw - var(--r-measure) / 2)) !important; }
+}
+@media (max-width: 600px) {
+  :root { --r-size: 16px; }
+  div.content-wrapper { padding: 8px 16px 96px; }
+  .titlepage h1 { font-size: 1.6rem; }
+  div[class*="_thmwrapper"] { padding: .6em .75em; margin-left: -4px; margin-right: -4px; }
+  div.proof_wrapper { padding-left: .7em; }
+}
+
+/* the dependency graph page */
+body > header { background: var(--r-soft) !important; color: var(--r-fg) !important; border-bottom: 1px solid var(--r-line); }
+h1#doc_title { color: var(--r-fg) !important; font-size: 1.1rem !important; }
+#Legend dl, div#statements { background: var(--r-panel) !important; color: var(--r-fg); border: 1px solid var(--r-line); border-radius: 8px; padding: 8px 12px; }
+#Legend .bar { background-color: var(--r-fg) !important; }
+div#graph { height: calc(100vh - 3rem) !important; resize: none !important; }
+/* the graph keeps its status fills (the legend names them); lines and labels follow the theme, and a label on a
+   filled node stays dark */
+div#graph svg > g > polygon[fill="white"] { fill: transparent; }
+div#graph svg [stroke="black"] { stroke: var(--r-fg); }
+div#graph svg polygon[fill="black"] { fill: var(--r-fg); stroke: var(--r-fg); }
+div#graph svg text { fill: var(--r-fg); }
+div#graph svg g.node:has(> :is(ellipse, polygon, path)[fill]:not([fill="none"]):not([fill="white"])) text { fill: #1c2420; }
+
+@media (prefers-reduced-motion: reduce) {
+  div[class*="_thmwrapper"]:target, .sym-hit, div.proof_content.hilite { animation: none; outline: 2px solid var(--r-link); }
+  #r-toc { transition: none; }
+}

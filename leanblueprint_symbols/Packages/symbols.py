@@ -20,11 +20,16 @@ used before their definition, and explanatory phrases inside statements. It writ
 
 Options:
     strict          stop the build when the checker reports a problem
-    status=FILE     JSON {lean declaration name: status}; nodes are coloured from it instead of \leanok
+    status=FILE     JSON {lean declaration name: status} or {name: {"status": ..., "url": ...}}; nodes are coloured
+                    from it instead of \leanok, and a given url replaces the declaration's documentation link
+    reader          the reader theme: a reading column, light and dark, a contents panel and text size (reader.css,
+                    reader.js; also styles the dependency graph page)
+    css=URL         one more stylesheet linked from every page (e.g. locally served fonts)
     envs=a+b+c      environments that are items (default: definition, lemma, theorem, proposition, corollary,
                     remark, example, notation, proof)
 
-In the HTML output, every symbol whose declaration is known links to the item that declares it.
+In the HTML output, every symbol whose declaration is known links to the item that declares it; following such a link
+opens a preview of the item in place (symbols.js), with "Go to" and "Back to where you were".
 """
 from __future__ import annotations
 
@@ -35,7 +40,7 @@ from pathlib import Path
 from plasTeX import Command
 from plasTeX.Base.LaTeX import Math as M
 from plasTeX.Logging import getLogger
-from plasTeX.PackageResource import PackageCss, PackageJs, PackageTemplateDir
+from plasTeX.PackageResource import PackageCss, PackageJs, PackageProcessFilecontents, PackageTemplateDir
 
 from leanblueprint_symbols import core
 
@@ -113,7 +118,27 @@ def ProcessOptions(options, document):
     strict = "strict" in options
     status_file = options.get("status")
     document.addPackageResource(PackageTemplateDir(path=PKG / "renderer_templates"))
-    document.addPackageResource([PackageCss(path=STATIC / "symbols.css"), PackageJs(path=STATIC / "symbols.js")])
+    reader = "reader" in options
+    extra_css = options.get("css")
+    res = [PackageCss(path=STATIC / "symbols.css"), PackageJs(path=STATIC / "symbols.js")]
+    if reader:
+        res += [PackageCss(path=STATIC / "reader.css"), PackageJs(path=STATIC / "reader.js")]
+    document.addPackageResource(res)
+
+    def head_links(doc, s: str) -> str:
+        """Every HTML page (the dependency graph pages too, which the package resources do not reach) links the
+        reader theme and the extra stylesheet once."""
+        if "</head>" not in s:
+            return s
+        add = ""
+        if extra_css and extra_css not in s:
+            add += f'<link rel="stylesheet" href="{extra_css}" />\n'
+        if reader and "styles/reader.css" not in s:
+            add += '<link rel="stylesheet" href="styles/reader.css" />\n'
+        return s.replace("</head>", add + "</head>", 1) if add else s
+
+    if reader or extra_css:
+        document.addPackageResource(PackageProcessFilecontents(data=head_links))
     state = document.userdata.setdefault("symbols", {})
 
     def collect() -> list:
@@ -194,7 +219,9 @@ def ProcessOptions(options, document):
 
     # status colours from the verifier, when given
     if status_file:
-        status = json.loads(Path(status_file).read_text())
+        raw = json.loads(Path(status_file).read_text())
+        status = {k: (v["status"] if isinstance(v, dict) else v) for k, v in raw.items()}
+        urls = {k: v["url"] for k, v in raw.items() if isinstance(v, dict) and v.get("url")}
         dep = document.userdata.setdefault("dep_graph", {})
 
         def node_status(node):
@@ -220,6 +247,15 @@ def ProcessOptions(options, document):
             state["node_status"] = node_status
 
         document.addPostParseCallbacks(170, apply_status)
+
+        def apply_urls():
+            """After leanblueprint's make_lean_data (150): the status file's url for each declaration that has one."""
+            for graph in dep.get("graphs", {}).values():
+                for node in graph.nodes:
+                    node.userdata["lean_urls"] = [(d, urls.get(d, u)) for d, u in node.userdata.get("lean_urls", [])]
+
+        if urls:
+            document.addPostParseCallbacks(160, apply_urls)
 
     # machine-readable output
     def export() -> None:
