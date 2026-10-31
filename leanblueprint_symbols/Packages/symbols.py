@@ -44,7 +44,7 @@ PKG = Path(__file__).parent
 STATIC = PKG.parent / "static"
 DEFAULT_ENVS = ["definition", "lemma", "theorem", "proposition", "corollary", "remark", "example", "notation",
                 "proof"]
-STATUS_COLORS = {"verified": ("#1CAC78", "Dark green"), "stated": ("green", "Green"),
+STATUS_COLORS = {"verified": ("#1CAC78", "Dark green"), "stated": ("#B0ECA3", "Light green"),
                  "sorry-free": ("#A3D6FF", "Light blue"), "missing": ("#FFAA33", "Orange")}
 
 
@@ -215,7 +215,7 @@ def ProcessOptions(options, document):
             dep["colorizer"] = colorizer
             dep["fillcolorizer"] = colorizer
             dep.setdefault("legend", []).append(
-                ("colours", "from the project verifier: dark green = verified, green = stated, light blue = "
+                ("colours", "from the project verifier: dark green = verified, light green = stated, light blue = "
                             "sorry-free (not verified), orange = Lean declaration missing"))
             state["node_status"] = node_status
 
