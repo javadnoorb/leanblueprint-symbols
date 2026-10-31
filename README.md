@@ -18,6 +18,10 @@ plugin works one level down, on the symbols inside formulas:
 * **Lean status from your own checker.** With `status=FILE`, dependency-graph nodes are coloured from a JSON file
   your project writes (for example from its verifier), not from hand-written `\leanok`. An entry may also give a URL
   for the declaration, which replaces the link to the mathlib documentation.
+* **What each statement's proof is.** Every lemma, theorem, proposition and corollary carries a chip: "verified in
+  Lean" (each Lean declaration it names is verified, by the status file, or `\leanok` without one), "proof on
+  paper" (a proof follows it in the text) or "no proof yet". A `conjecture` environment is an item too; its chip says
+  "open". The labels Theorem, Lemma, ... say how much a result matters; the chip says whether it is proved.
 * **Reader theme** (option `reader`): a reading column, light and dark modes, items set off by kind, a contents panel
   with a filter, the current section, the text size, and item tools that work on touch screens. The dependency graph
   page gets the same theme.
@@ -52,7 +56,7 @@ plastex --plugins leanblueprint leanblueprint_symbols -- web.tex
 | `status=FILE` | JSON `{lean name: status}` or `{lean name: {"status": ..., "url": ...}}`; status is `verified`, `stated`, `sorry-free` or `missing` |
 | `reader` | the reader theme (reader.css, reader.js), also on the dependency graph page |
 | `css=URL` | one more stylesheet linked from every page (for example locally served fonts) |
-| `envs=a+b+c` | the environments that are items (default: definition, lemma, theorem, proposition, corollary, remark, example, notation, proof) |
+| `envs=a+b+c` | the environments that are items (default: definition, lemma, theorem, proposition, corollary, conjecture, remark, example, notation, proof); add `conjecture` to blueprint's `thms` option to put conjectures in the graph |
 
 ### Matching rules
 

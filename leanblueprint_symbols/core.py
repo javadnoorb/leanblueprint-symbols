@@ -46,11 +46,11 @@ ACCENTS = {r"\tilde", r"\hat", r"\bar", r"\overline", r"\underline", r"\widetild
 FONTS = {r"\mathcal", r"\mathbb", r"\mathrm", r"\mathbf", r"\mathsf", r"\mathfrak", r"\operatorname", r"\boldsymbol"}
 GLOSS = [r"\bi\.e\.", r"\bso that\b", r"\bin words\b", r"\bthis is why\b", r"\bnote that\b",
          r"\bthis is the only place\b", r"\bin other words\b", r"\bthat is to say\b"]
-STATEMENT_KINDS = {"definition", "lemma", "theorem", "proposition", "corollary"}
+STATEMENT_KINDS = {"definition", "lemma", "theorem", "proposition", "corollary", "conjecture"}
 
 
 def _mask(src: str) -> str:
-    """The same string with regions that hold no symbols blanked out (same length, so positions match):
+    r"""The same string with regions that hold no symbols blanked out (same length, so positions match):
     words in \text{...}, environment names in \begin{...}/\end{...}, link targets in \href{...}."""
     out = list(src)
     for m in re.finditer(r"\\(?:text|textrm|mbox|textit|textbf)\s*\{[^{}]*\}|\\(?:begin|end)\s*\{[^{}]*\}|"
@@ -155,7 +155,7 @@ def tokens(src: str) -> list[tuple[str, bool, str]]:
 
 
 def link(src: str, resolve) -> str:
-    """Wrap each outermost symbol occurrence that `resolve(key)` maps to a URL in \href{url}{...}. Symbols nested in
+    r"""Wrap each outermost symbol occurrence that `resolve(key)` maps to a URL in \href{url}{...}. Symbols nested in
     the scripts of a linked symbol are left as they are (the outer link covers them)."""
     spans = [(a, b, resolve(k)) for k, a, b in scan(src)]
     spans = [t for t in spans if t[2]]

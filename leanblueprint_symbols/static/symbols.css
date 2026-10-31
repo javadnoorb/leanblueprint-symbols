@@ -29,3 +29,20 @@ mjx-container a, mjx-container [data-mjx-href] { cursor: pointer; }
   font: 500 14px var(--r-sans, system-ui, sans-serif); cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, .15); }
 @media (prefers-reduced-motion: reduce) { .sym-hit { animation: none; outline: 2px solid var(--s-link); } }
 .sym-pop-head button:focus:not(:focus-visible) { outline: none; }
+
+/* the proof chip on a statement's heading */
+:root { --chip-ok: #1f7a46; --chip-ok-bg: #e2f2e7; --chip-paper: #1d5f8f; --chip-paper-bg: #e3eef6;
+  --chip-none: #9a4d06; --chip-none-bg: #fbeedd; --chip-open: #6b3fa0; --chip-open-bg: #efe7f8; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --chip-ok: #8fd6aa; --chip-ok-bg: #1b2e22; --chip-paper: #9ccbee; --chip-paper-bg: #1c2c38;
+    --chip-none: #f0b36b; --chip-none-bg: #33281a; --chip-open: #c9a8f0; --chip-open-bg: #2a2236; }
+}
+:root[data-theme="dark"] { --chip-ok: #8fd6aa; --chip-ok-bg: #1b2e22; --chip-paper: #9ccbee; --chip-paper-bg: #1c2c38;
+  --chip-none: #f0b36b; --chip-none-bg: #33281a; --chip-open: #c9a8f0; --chip-open-bg: #2a2236; }
+div.thm_header_extras { display: inline-flex; align-items: center; }
+.proofchip { display: inline-block; font: 500 12px/1.2 var(--r-sans, system-ui, sans-serif); letter-spacing: .01em;
+  padding: 3px 8px; border-radius: 999px; white-space: nowrap; font-style: normal; }
+.proofchip-verified { color: var(--chip-ok); background: var(--chip-ok-bg); }
+.proofchip-paper { color: var(--chip-paper); background: var(--chip-paper-bg); }
+.proofchip-none { color: var(--chip-none); background: var(--chip-none-bg); }
+.proofchip-open { color: var(--chip-open); background: var(--chip-open-bg); }

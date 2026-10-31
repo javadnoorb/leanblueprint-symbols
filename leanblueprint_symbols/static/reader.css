@@ -61,6 +61,7 @@ div[class*="_thmwrapper"] { margin: 1.4em 0 .6em; padding: .7em 1em .75em; backg
   scroll-margin-top: calc(var(--r-bar) + 16px); }
 div.definition_thmwrapper, div.notation_thmwrapper { --r-k: var(--r-def); }
 div.remark_thmwrapper, div.example_thmwrapper { --r-k: var(--r-rem); background: transparent; }
+div.conjecture_thmwrapper { --r-k: var(--chip-open, #6b3fa0); border-left-style: dashed; }   /* not proved */
 div[class*="_thmwrapper"]:target, .sym-hit { animation: r-hit 2.2s ease-out; }
 @keyframes r-hit { 0%, 35% { background: var(--r-hl); } 100% { } }
 div[class$="_thmheading"] { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; line-height: 1.4;
@@ -126,6 +127,9 @@ nav.prev_up_next:empty { display: none; }
 #r-toc a:hover, #r-toc a.cur { background: var(--r-soft); }
 #r-toc a.ch { font-weight: 600; margin-top: 10px; }
 #r-toc a .k { color: var(--r-mut); flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+#r-toc a .r-dot { flex: 0 0 8px; height: 8px; border-radius: 50%; margin: 0 2px 0 auto; align-self: center; background: currentColor; }
+#r-toc a .r-dot.proofchip-verified { color: var(--chip-ok); } #r-toc a .r-dot.proofchip-paper { color: var(--chip-paper); }
+#r-toc a .r-dot.proofchip-none { color: var(--chip-none); } #r-toc a .r-dot.proofchip-open { color: var(--chip-open); }
 #r-toc a .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (min-width: 1180px) {
   body.r-wide #r-toc { transform: none; box-shadow: none; }

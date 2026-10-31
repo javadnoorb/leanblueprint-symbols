@@ -20,7 +20,9 @@
       } else {
         const q = (s) => (el.querySelector(':scope > div[class$="_thmheading"] span[class$="' + s + '"]') || {}).textContent;
         const cap = (q('_thmcaption') || '').trim(), num = (q('_thmlabel') || '').trim(), title = (q('_thmtitle') || '').trim();
-        out.push({ el, ch: false, k: (cap + ' ' + num).trim(), t: title });
+        const chip = el.querySelector(':scope > div[class$="_thmheading"] .proofchip');
+        out.push({ el, ch: false, k: (cap + ' ' + num).trim(), t: title,
+          p: chip ? { cls: chip.className.replace('proofchip ', ''), t: chip.textContent.trim() } : null });
       }
     });
     return out;
@@ -43,7 +45,8 @@
     toc.setAttribute('aria-label', 'Contents');
     toc.innerHTML = '<input type="search" placeholder="Filter: wiring, Lemma 1.6, …" aria-label="Filter the contents">' +
       list.map((it, i) => '<a href="#' + encodeURIComponent(it.el.id) + '" data-i="' + i + '" class="' + (it.ch ? 'ch' : '') + '">' +
-        (it.k ? '<span class="k">' + esc(it.k) + '</span>' : '') + '<span class="t">' + esc(it.t) + '</span></a>').join('');
+        (it.k ? '<span class="k">' + esc(it.k) + '</span>' : '') + '<span class="t">' + esc(it.t) + '</span>' +
+        (it.p ? '<span class="r-dot ' + it.p.cls + '" title="' + esc(it.p.t) + '" aria-label="' + esc(it.p.t) + '"></span>' : '') + '</a>').join('');
     document.body.appendChild(toc);
 
     const btn = bar.querySelector('#r-contents');

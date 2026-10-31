@@ -28,6 +28,10 @@ Options:
     envs=a+b+c      environments that are items (default: definition, lemma, theorem, proposition, corollary,
                     remark, example, notation, proof)
 
+Every lemma, theorem, proposition and corollary carries a chip saying what its proof is: "verified in Lean" (every
+Lean declaration it names is verified, by the status file, or \leanok without one), "proof on paper" (a proof
+follows it in the text), or "no proof yet"; a conjecture's chip says "open".
+
 In the HTML output, every symbol whose declaration is known links to the item that declares it; following such a link
 opens a preview of the item in place (symbols.js), with "Go to" and "Back to where you were".
 """
@@ -42,13 +46,18 @@ from plasTeX.Base.LaTeX import Math as M
 from plasTeX.Logging import getLogger
 from plasTeX.PackageResource import PackageCss, PackageJs, PackageProcessFilecontents, PackageTemplateDir
 
+from jinja2 import Template
+
 from leanblueprint_symbols import core
 
 log = getLogger()
 PKG = Path(__file__).parent
 STATIC = PKG.parent / "static"
-DEFAULT_ENVS = ["definition", "lemma", "theorem", "proposition", "corollary", "remark", "example", "notation",
-                "proof"]
+DEFAULT_ENVS = ["definition", "lemma", "theorem", "proposition", "corollary", "conjecture", "remark", "example",
+                "notation", "proof"]
+# what a statement's heading says about its proof (the chip), most established first
+PROOF_STATES = {"verified": "verified in Lean", "paper": "proof on paper", "none": "no proof yet", "open": "open"}
+PROOF_KINDS = {"lemma", "theorem", "proposition", "corollary"}
 STATUS_COLORS = {"verified": ("#1CAC78", "Dark green"), "stated": ("#B0ECA3", "Light green"),
                  "sorry-free": ("#A3D6FF", "Light blue"), "missing": ("#FFAA33", "Orange")}
 
@@ -257,6 +266,36 @@ def ProcessOptions(options, document):
         if urls:
             document.addPostParseCallbacks(160, apply_urls)
 
+    # the proof chip on each statement's heading (leanblueprint's header-extras hook)
+    def proof_state(node):
+        kind = getattr(node, "thmName", None) or getattr(node, "tagName", "")
+        if kind == "conjecture":
+            return "open"
+        if kind not in PROOF_KINDS:
+            return None
+        decls = node.userdata.get("leandecls", [])
+        if "node_status" in state:
+            lean_ok = bool(decls) and state["node_status"](node) == "verified"
+        else:
+            proof = node.userdata.get("proved_by")
+            lean_ok = bool(node.userdata.get("leanok")) and (proof is None or bool(proof.userdata.get("leanok")))
+        if lean_ok:
+            return "verified"
+        return "paper" if node.userdata.get("proved_by") is not None else "none"
+
+    def apply_proof_states():
+        for node in document.getElementsByTagName(tuple(envs)):
+            st = proof_state(node)
+            if st:
+                node.userdata["symbols_proof"] = st
+                node.userdata["symbols_proof_text"] = PROOF_STATES[st]
+        state["proof_state"] = lambda n: n.userdata.get("symbols_proof")
+
+    document.addPostParseCallbacks(175, apply_proof_states)
+    chip = Template('{% if obj.userdata.symbols_proof %}<span class="proofchip proofchip-{{ obj.userdata.symbols_proof }}">'
+                    '{{ obj.userdata.symbols_proof_text }}</span>{% endif %}')
+    document.userdata.setdefault("thm_header_extras_tpl", []).append(chip)
+
     # machine-readable output
     def export() -> None:
         items = state.get("items", [])
@@ -268,7 +307,8 @@ def ProcessOptions(options, document):
                                  "title": _text(n.title) if getattr(n, "title", None) else None,
                                  "lean": n.userdata.get("leandecls", []), "uses": uses, "parent": it["parent"],
                                  "defines": [s for s, _ in it["defines"]], "terms": it["terms"],
-                                 "status": state["node_status"](n) if "node_status" in state else None})
+                                 "status": state["node_status"](n) if "node_status" in state else None,
+                                 "proof": n.userdata.get("symbols_proof")})
         for key, e in state.get("table", {}).items():
             out["symbols"].append({"sym": e["sym"], "type": e["type"], "label": e["label"]})
         outdir = Path(document.userdata.get("working-dir", ".")).resolve()

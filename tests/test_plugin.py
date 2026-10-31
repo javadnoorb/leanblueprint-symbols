@@ -61,3 +61,46 @@ def test_reader_css_and_lean_urls(tmp_path):
         assert html.count("styles/reader.css") == 1 and html.count('href="/fonts.css"') == 1
     assert "js/reader.js" in page and (out / "js" / "reader.js").exists()
     assert "/src?path=X.lean" in page and "find/#doc/X.box" not in page + graph
+
+
+PROOF_DOC = r"""\documentclass{report}
+\usepackage{amsmath, amsthm}
+\usepackage[thms=definition+lemma+theorem+conjecture]{blueprint}
+\usepackage[status=status.json]{symbols}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter]
+\newtheorem{lemma}[definition]{Lemma}
+\newtheorem{theorem}[definition]{Theorem}
+\newtheorem{conjecture}[definition]{Conjecture}
+\begin{document}
+\chapter{C}
+\begin{definition}\label{def:a}\defines{a}{real number} Let $a=1$.\end{definition}
+\begin{theorem}\label{thm:lean}\uses{def:a}\lean{X.ok} $a>0$.\end{theorem}
+\begin{lemma}\label{lem:paper}\uses{def:a} $a\ge0$.\end{lemma}
+\begin{proof} Since $a=1$.\end{proof}
+\begin{lemma}\label{lem:stated}\uses{def:a}\lean{X.stated} $a\ne0$.\end{lemma}
+\begin{lemma}\label{lem:bare}\uses{def:a} $a<2$.\end{lemma}
+\begin{conjecture}\label{conj:c}\uses{def:a} $a<3$.\end{conjecture}
+\end{document}
+"""
+
+
+@pytest.mark.slow
+def test_proof_chips(tmp_path):
+    """Each statement's heading says what its proof is: verified in Lean (by the status file, not by the Lean name
+    alone), proof on paper, no proof yet; a conjecture says open. The JSON export carries the same."""
+    (tmp_path / "p.tex").write_text(PROOF_DOC)
+    (tmp_path / "status.json").write_text(json.dumps({"X.ok": "verified", "X.stated": {"status": "stated"}}))
+    env = dict(os.environ, PATH=f"{BIN}:{os.environ['PATH']}")
+    r = subprocess.run([str(BIN / "plastex"), "--plugins", "leanblueprint", "leanblueprint_symbols", "--", "p.tex"],
+                       cwd=tmp_path, env=env, capture_output=True, text=True, timeout=600)
+    assert r.returncode == 0, r.stderr[-2000:]
+    assert "template error" not in r.stdout + r.stderr
+    proof = {i["label"]: i["proof"] for i in json.loads((tmp_path / "blueprint-data.json").read_text())["items"]}
+    assert proof["thm:lean"] == "verified" and proof["lem:paper"] == "paper"
+    assert proof["lem:stated"] == "none" and proof["lem:bare"] == "none" and proof["conj:c"] == "open"
+    assert proof["def:a"] is None
+    html = (tmp_path / "p" / "sect0001.html").read_text()
+    for cls, words in (("verified", "verified in Lean"), ("paper", "proof on paper"), ("none", "no proof yet"),
+                       ("open", "open")):
+        assert f'proofchip-{cls}">{words}<' in html, cls
