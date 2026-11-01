@@ -154,11 +154,13 @@
       let foot = c.card.querySelector(':scope > .sym-foot');
       if (!foot) {
         foot = document.createElement('div'); foot.className = 'sym-foot';
-        foot.innerHTML = '<span class="sym-astate" aria-live="polite"></span><button type="button" class="sym-abtn"></button>';
+        foot.innerHTML = '<span class="sym-astate" aria-live="polite"></span><button type="button" class="sym-abtn sym-approve-btn"></button>';
         c.card.appendChild(foot);
-        foot.querySelector('button').addEventListener('click', () => toggle(c));
+        foot.querySelector('.sym-approve-btn').addEventListener('click', () => toggle(c));
       }
-      const st = stateOf(c), b = foot.querySelector('button'), t = foot.querySelector('.sym-astate');
+      // its own button by class: a host page may add buttons to the foot (before this one), and "the first button"
+      // would then be one of those, relabelled (2026-11-01: the console's Note button read "Approve")
+      const st = stateOf(c), b = foot.querySelector('.sym-approve-btn'), t = foot.querySelector('.sym-astate');
       foot.dataset.state = st;
       c.card.classList.toggle('sym-approved', st === 'ok');
       t.textContent = st === 'ok' ? '✓ Approved' : st === 'changed' ? 'Changed since you approved it' : '';
@@ -169,7 +171,7 @@
   }
   async function toggle(c) {
     const ok = stateOf(c) !== 'ok';
-    const b = c.card.querySelector('.sym-foot button'); b.disabled = true;
+    const b = c.card.querySelector('.sym-foot .sym-approve-btn'); b.disabled = true;
     try {
       if (await host().set(c.label, c.sha, ok)) marks[c.label] = { status: ok ? 'ok' : 'none', sha: c.sha };
     } catch (e) { /* the host said why (a toast) */ }
