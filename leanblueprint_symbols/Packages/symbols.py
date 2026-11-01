@@ -10,6 +10,9 @@ Commands (inside a definition, lemma, theorem, ... or proof):
     \defines{M_e}{matrix in $\mathbb R^{n\times n}$}   this item introduces the symbol M_e, of the given type
     \binds{e,k,l}                                        symbols bound locally here ("for an edge e")
     \defterm{matrix unit}                                this item defines the term; renders as the term itself
+    \contains{thm:a, thm:b}                              this result implies those (they are its special cases): the
+                                                         implication edges a frontier is computed from (\uses says
+                                                         what an item relies on, \contains what it generalizes)
 
 After parsing, the checker (leanblueprint_symbols.core) reports undeclared, redeclared and untyped symbols, terms
 used before their definition, and explanatory phrases inside statements. It writes, next to the output directory:
@@ -107,6 +110,16 @@ class binds(Command):
         self.parentNode.userdata.setdefault("binds", []).extend(_split(_text(self.attributes["syms"])))
 
 
+class contains(Command):
+    r"""\contains{label, label, ...}: the results this one implies"""
+    args = "refs:str"
+
+    def digest(self, tokens):
+        Command.digest(self, tokens)
+        refs = [x.strip() for x in str(self.attributes["refs"]).split(",") if x.strip()]
+        self.parentNode.userdata.setdefault("contains", []).extend(refs)
+
+
 class defterm(Command):
     r"""\defterm{term}"""
     args = "term:str"
@@ -170,6 +183,7 @@ def ProcessOptions(options, document):
             defs, bnds, terms = list(n.userdata.get("defines", [])), list(n.userdata.get("binds", [])), \
                 list(n.userdata.get("terms", []))
             leans = list(n.userdata.get("defines_lean", []))
+            conts = list(n.userdata.get("contains", []))
             for d in n.allChildNodes if hasattr(n, "allChildNodes") else []:
                 if d is n or _owner(d.parentNode, ids) is not n:
                     continue
@@ -177,20 +191,27 @@ def ProcessOptions(options, document):
                 bnds += d.userdata.get("binds", []) if hasattr(d, "userdata") else []
                 terms += d.userdata.get("terms", []) if hasattr(d, "userdata") else []
                 leans += d.userdata.get("defines_lean", []) if hasattr(d, "userdata") else []
+                conts += d.userdata.get("contains", []) if hasattr(d, "userdata") else []
             maths = [m for m in n.getElementsByTagName(("math", "displaymath", "equation", "equation*", "align",
                                                          "align*")) if _owner(m.parentNode, ids) is n]
             kind = getattr(n, "tagName", n.nodeName)
             label = n.id
             if re.fullmatch(r"a\d+", label or ""):     # no \label: name it by what it is
                 label = f"proof of {parent_label}" if parent_label else kind
-            items.append({"label": label, "kind": kind, "defines": defs, "binds": bnds, "terms": terms, "leans": dict(leans),
+            items.append({"label": label, "kind": kind, "defines": defs, "binds": bnds, "terms": terms, "leans": dict(leans), "contains": conts,
                           "math": [m.source for m in maths], "text": n.textContent, "parent": parent_label,
                           "node": n})
         return items
 
     def check() -> None:
         items = collect()
-        problems = core.check([{k: v for k, v in it.items() if k not in ("node", "leans")} for it in items])
+        problems = core.check([{k: v for k, v in it.items() if k not in ("node", "leans", "contains")} for it in items])
+        labels = {it["label"] for it in items}
+        for it in items:   # a \contains naming no item, or the item itself
+            for c in it.get("contains", []):
+                if c not in labels or c == it["label"]:
+                    problems.append({"kind": "contains", "label": it["label"],
+                                     "detail": f"{c}: {'no such item' if c not in labels else 'an item cannot contain itself'}"})
         by_label = {it["label"]: it["node"] for it in items}
         table = {}
         for it in items:
@@ -330,7 +351,8 @@ def ProcessOptions(options, document):
     document.userdata.setdefault("thm_header_extras_tpl", []).append(chip)
 
     # an item's text for other applications: its TeX without the environment and the metadata commands
-    META = ("label", "uses", "lean", "leanok", "notready", "proves", "mathlibok", "discussion", "defines", "binds")
+    META = ("label", "uses", "lean", "leanok", "notready", "proves", "mathlibok", "discussion", "defines", "binds",
+            "contains")
 
     def body_tex(src: str) -> str:
         src = re.sub(r"^\\begin\{[^}]*\}(\[[^\]]*\])?", "", src.strip())
@@ -387,7 +409,7 @@ def ProcessOptions(options, document):
                                  "status": state["node_status"](n) if "node_status" in state else None,
                                  "proof": n.userdata.get("symbols_proof"), "sha": n.userdata.get("symbols_sha"),
                                  "number": n.ref.textContent if getattr(n, "ref", None) is not None else None,
-                                 "tex": body_tex(n.source or ""), "where": section_of(n)})
+                                 "tex": body_tex(n.source or ""), "where": section_of(n), "contains": it.get("contains", [])})
         for key, e in state.get("table", {}).items():
             out["symbols"].append({"sym": e["sym"], "type": e["type"], "label": e["label"], "lean": e.get("lean")})
         outdir = Path(document.userdata.get("working-dir", ".")).resolve()

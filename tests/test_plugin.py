@@ -81,6 +81,7 @@ PROOF_DOC = r"""\documentclass{report}
 \begin{lemma}\label{lem:stated}\uses{def:a}\lean{X.stated} $a\ne0$.\end{lemma}
 \begin{lemma}\label{lem:bare}\uses{def:a} $a<2$.\end{lemma}
 \begin{conjecture}\label{conj:c}\uses{def:a} $a<3$.\end{conjecture}
+\begin{theorem}\label{thm:big}\uses{def:a}\contains{lem:paper, lem:bare} $a=1$.\end{theorem}
 \end{document}
 """
 
@@ -106,6 +107,7 @@ def test_proof_chips(tmp_path):
     syms = json.loads((tmp_path / "blueprint-data.json").read_text())["symbols"]
     assert {"sym": "a", "type": "real number", "label": "def:a", "lean": "X.a"} in syms
     assert items["thm:lean"]["where"] == {"chapter": "1 C"}
+    assert items["thm:big"]["contains"] == ["lem:paper", "lem:bare"] and items["thm:big"]["tex"] == "$a=1$."
     html = (tmp_path / "p" / "sect0001.html").read_text()
     for cls, words in (("verified", "verified in Lean"), ("paper", "proof on paper"), ("none", "no proof yet"),
                        ("open", "open")):
@@ -140,3 +142,11 @@ def test_approve_markers_and_card_hash(tmp_path):
     (tmp_path / "c").mkdir()   # a metadata-only edit (a Lean name on \defines) is not a change of the card
     c = _build(tmp_path / "c", tex.replace(r"\defines[X.a]{a}", r"\defines[X.b]{a}"), {"X.ok": "verified"})
     assert c["def:a"]["sha"] == a["def:a"]["sha"]
+
+
+@pytest.mark.slow
+def test_contains_must_name_an_item(tmp_path):
+    tex = PROOF_DOC.replace(r"\uses{def:a} $a<3$.", r"\uses{def:a}\contains{lem:nope} $a<3$.")
+    _build(tmp_path, tex, {"X.ok": "verified"})
+    rep = json.loads((tmp_path / "symbols-report.json").read_text())
+    assert any(p["kind"] == "contains" and "lem:nope" in p["detail"] for p in rep)

@@ -9,6 +9,9 @@ plugin works one level down, on the symbols inside formulas:
   optionally with the Lean declaration the symbol stands for: `\defines[GRN.General.cornerMatrix]{A_S}{...}` (exported with the symbols).
   Symbols bound locally are listed with `\binds{e,k,l}`, and defined terms are marked where they are defined with
   `\defterm{matrix unit}`.
+* **Containment.** `\contains{thm:a, thm:b}` on a result says it implies those (they are its special cases), beside
+  `\uses` (what it relies on); exported per item, so an application can compute a frontier (the results nothing else
+  contains). A `\contains` naming no item is a checker problem.
 * **Checks at build time.** The checker reports every symbol used before any item declares it, a symbol declared twice
   (one meaning per symbol), a declaration without a type, a defined term used before its definition, and explanatory
   phrases ("i.e.", "so that", ...) inside definitions and statements. `symbols.diagnose` lists a `\defines` line to
