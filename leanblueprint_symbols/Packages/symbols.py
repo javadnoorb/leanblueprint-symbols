@@ -15,7 +15,9 @@ Commands (inside a definition, lemma, theorem, ... or proof):
                                                          what an item relies on, \contains what it generalizes)
 
 After parsing, the checker (leanblueprint_symbols.core) reports undeclared, redeclared and untyped symbols, terms
-used before their definition, and explanatory phrases inside statements; and a definition with a name (its title)
+used before their definition, and explanatory phrases inside statements; a symbol declared inside a lemma or proof but used elsewhere, a letter
+bound in two roles (\binds{w \in \mathcal B}: a bound symbol may carry its type), a symbol used without a \uses
+path to the item that declares it, a statement in numbered parts whose proof skips a part; and a definition with a name (its title)
 that does not introduce that name as a term in its text (\defterm). It writes, next to the output directory:
 
     symbols-report.json   the problems
@@ -199,7 +201,12 @@ def ProcessOptions(options, document):
             label = n.id
             if re.fullmatch(r"a\d+", label or ""):     # no \label: name it by what it is
                 label = f"proof of {parent_label}" if parent_label else kind
+            uses = [u.id for u in n.userdata.get("uses", []) if getattr(u, "id", None)]
+            # numbered parts: the \item lines of the statement's own top-level list
+            src = n.source or ""
+            parts = len(re.findall(r"\\item\b", src)) if src.count("\\begin{enumerate}") == 1 else 0
             items.append({"label": label, "kind": kind, "defines": defs, "binds": bnds, "terms": terms, "leans": dict(leans), "contains": conts,
+                          "uses": uses, "parts": parts,
                           "math": [m.source for m in maths], "text": n.textContent, "parent": parent_label,
                           "node": n})
         return items

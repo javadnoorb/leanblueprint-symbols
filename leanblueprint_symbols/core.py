@@ -8,7 +8,9 @@ An *item* is one numbered unit (definition, lemma, theorem, proof, remark, ...) 
      "terms": ["matrix unit"],          # terms this item defines (glossary)
      "math": ["M_e\\in\\mathbb R^{n\\times n}", ...],              # TeX of every formula, in order
      "text": "For an edge $e$, ...",    # the prose (for term and gloss checks)
-     "parent": None}                    # for a proof: the label of its statement (inherits its symbols)
+     "parent": None,                    # for a proof: the label of its statement (inherits its symbols)
+     "uses": ["def:wiring"],            # optional: the items it says it depends on (\\uses)
+     "parts": 0}                        # optional: the number of numbered parts of a statement (\\item)
 
 `check(items)` returns a list of problems (dicts with "kind", "label", "detail"), in document order:
 
@@ -17,6 +19,16 @@ An *item* is one numbered unit (definition, lemma, theorem, proof, remark, ...) 
     untyped      a declaration without a type
     term-before  a glossary term used in an item before the item that defines it
     gloss        an explanatory phrase inside a definition or statement ("so that", "i.e.", ...)
+    local-def    a symbol declared inside a lemma, theorem, remark, proof, ... and used by another item: a definition
+                 used elsewhere belongs in a definition (or the notation) of its own
+    two-roles    a letter bound with two different types (\\binds{w \\in \\mathcal B} here, \\binds{w \\in E} there) in
+                 items that depend on each other: one letter, one role
+    uses         a symbol used in an item whose declaring item the item does not depend on (\\uses, directly or
+                 through other items; a proof also through its statement); notation items are exempt
+    proof-parts  a statement in numbered parts whose proof does not treat each part ("(1)", "(2)", ...)
+
+A bound symbol may carry a type: "w \\in \\mathcal B", "S \\subseteq E" or "w : point of the box" (the symbol
+is what comes before the first \\in, \\subseteq or colon).
 
 Symbols are matched by a normalized key: the base (a letter, a Greek or other command, \\mathcal X, \\mathrm{Word},
 an accented base such as \\tilde H), whether it carries a subscript, and a decoration superscript (^-, ^+, ^{\\mathrm{nd}}).
@@ -200,7 +212,112 @@ def _matches(use, declared: set) -> bool:
             or bool(sub and (base, False, deco) in declared))
 
 
+BIND_TYPE = re.compile(r"\\in\b|\\subseteq\b|\\colon|:")
+
+
+def split_bind(b: str) -> tuple[str, str]:
+    """A bound symbol and its type, if it carries one: "w \\in \\mathcal B" -> ("w", "\\in \\mathcal B")."""
+    m = BIND_TYPE.search(b)
+    if not m:
+        return b.strip(), ""
+    return b[:m.start()].strip(), _norm(b[m.start():].lstrip(":").strip())
+
+
+def _which(use, declared):
+    """The declared key a use resolves to (the same order as _matches), or None."""
+    base, sub, deco = use
+    for k in (use, (base, sub, ""), (base, False, deco) if deco else None, (base, False, deco) if sub else None):
+        if k is not None and k in declared:
+            return k
+    return None
+
+
+EXEMPT_FROM_USES = {"notation"}
+DEFINING_KINDS = {"definition", "notation"}
+
+
 def check(items: list[dict]) -> list[dict]:
+    problems = _check(items)
+    by = {it["label"]: it for it in items}
+    # the dependency closure: what each item depends on, directly or through others; a proof through its statement
+    deps: dict[str, set] = {}
+
+    def closure(label, seen=()):
+        if label in deps:
+            return deps[label]
+        it = by.get(label)
+        out = set()
+        if it is None or label in seen:
+            return out
+        direct = set(it.get("uses", [])) | ({it["parent"]} if it.get("parent") else set())
+        for d in direct:
+            out |= {d} | closure(d, seen + (label,))
+        deps[label] = out
+        return out
+
+    declared: dict[tuple, str] = {}
+    kinds = {it["label"]: it.get("kind") for it in items}
+    users: dict[tuple, set] = {}
+    for it in items:
+        label = it["label"]
+        own = {key_of(sym) for sym, _ in it.get("defines", [])}
+        local = {key_of(split_bind(b)[0]) for b in it.get("binds", [])
+                 + (by[it["parent"]].get("binds", []) if it.get("parent") in by else [])}
+        seen = set()
+        for src in it.get("math", []):
+            for use in tokens(src):
+                k = _which(use, declared)
+                if k is None or k in seen or k in own or _matches(use, local) \
+                        or use in bound_in(src):
+                    continue
+                seen.add(k)
+                src_label = declared[k]
+                users.setdefault(k, set()).add(label)
+                if "uses" in it and kinds.get(src_label) not in EXEMPT_FROM_USES and src_label != label \
+                        and src_label not in closure(label):
+                    problems.append({"kind": "uses", "label": label,
+                                     "detail": f"{k[0]} is declared in {src_label}, which {label} does not depend on"})
+        for sym, _ in it.get("defines", []):
+            declared.setdefault(key_of(sym), label)
+    for k, label in declared.items():
+        it = by[label]
+        if it.get("kind") in DEFINING_KINDS:
+            continue
+        own_family = {label, it.get("parent")} | {x["label"] for x in items if x.get("parent") == label}
+        others = sorted(users.get(k, set()) - own_family)
+        if others:
+            problems.append({"kind": "local-def", "label": label,
+                             "detail": f"{k[0]} is declared inside this {it.get('kind')} and used in {', '.join(others)}: "
+                                       "give it a definition of its own"})
+    # one letter, one role: the same letter bound with two different types in items that depend on each other
+    typed: dict[str, dict] = {}
+    for it in items:
+        for b in it.get("binds", []):
+            sym, ty = split_bind(b)
+            if ty:
+                typed.setdefault(it["label"], {})[key_of(sym)] = (sym, ty)
+    for a in typed:
+        for b in typed:
+            if a >= b or not (a in closure(b) or b in closure(a)):
+                continue
+            for k in typed[a].keys() & typed[b].keys():
+                if typed[a][k][1] != typed[b][k][1]:
+                    problems.append({"kind": "two-roles", "label": b,
+                                     "detail": f"{typed[b][k][0]} is {typed[b][k][1]} here and {typed[a][k][1]} in {a}"})
+    # a statement in numbered parts: its proof treats each part
+    for it in items:
+        st = by.get(it.get("parent"))
+        n = (st or {}).get("parts", 0)
+        if it.get("kind") != "proof" or n < 2:
+            continue
+        missing = [str(i) for i in range(1, n + 1) if f"({i})" not in it.get("text", "")]
+        if missing:
+            problems.append({"kind": "proof-parts", "label": it["label"],
+                             "detail": f"{st['label']} has {n} parts; the proof has no ({'), ('.join(missing)})"})
+    return problems
+
+
+def _check(items: list[dict]) -> list[dict]:
     problems: list[dict] = []
     declared: dict[tuple, str] = {}          # key -> label of the declaring item
     scope: dict[str, set] = {}               # label -> keys declared or bound in that item
@@ -219,7 +336,7 @@ def check(items: list[dict]) -> list[dict]:
                 problems.append({"kind": "redeclared", "label": label,
                                  "detail": f"{sym} (first declared in {declared[k]})"})
             own.add(k)
-        local = {key_of(b) for b in it.get("binds", [])}
+        local = {key_of(split_bind(b)[0]) for b in it.get("binds", [])}
         if it.get("parent") in scope:
             local |= scope[it["parent"]]
         visible = set(declared) | own | local

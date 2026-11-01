@@ -7,7 +7,7 @@ plugin works one level down, on the symbols inside formulas:
 
 * **Declarations.** An item says which symbols it introduces, with their types: `\defines{M_e}{matrix in $\mathbb R^{n\times n}$}`,
   optionally with the Lean declaration the symbol stands for: `\defines[GRN.General.cornerMatrix]{A_S}{...}` (exported with the symbols).
-  Symbols bound locally are listed with `\binds{e,k,l}`, and defined terms are marked where they are defined with
+  Symbols bound locally are listed with `\binds{e,k,l}`, optionally with their types (`\binds{w \in \mathcal B, S \subseteq E}`), and defined terms are marked where they are defined with
   `\defterm{matrix unit}`.
 * **Containment.** `\contains{thm:a, thm:b}` on a result says it implies those (they are its special cases), beside
   `\uses` (what it relies on); exported per item, so an application can compute a frontier (the results nothing else
@@ -15,7 +15,11 @@ plugin works one level down, on the symbols inside formulas:
 * **Checks at build time.** The checker reports every symbol used before any item declares it, a symbol declared twice
   (one meaning per symbol), a declaration without a type, a defined term used before its definition, and explanatory
   phrases ("i.e.", "so that", ...) inside definitions and statements. A definition with a name (its title) must introduce that name as a
-  `\defterm` in its text, so the reader meets the name before the mathematics. `symbols.diagnose` lists a `\defines` line to
+  `\defterm` in its text, so the reader meets the name before the mathematics. Structure checks: a symbol declared
+  inside a lemma, theorem, remark or proof but used by another item (it belongs in a definition of its own); a letter
+  bound with two different types in items that depend on each other (one letter, one role); a symbol used in an item
+  with no `\uses` path to the item that declares it (notation items exempt; a proof depends on its statement); a
+  statement in numbered parts whose proof has no "(k)" for some part. `symbols.diagnose` lists a `\defines` line to
   complete for each undeclared symbol; the `strict` option stops the build on any problem.
 * **Hyperlinked formulas.** Every declared symbol in every formula links to the item that declares it. Following a
   link opens a preview of that item where you are, with "Go to" and "Back to where you were". A tap that lands a

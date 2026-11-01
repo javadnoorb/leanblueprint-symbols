@@ -120,3 +120,51 @@ def test_component_of_a_declared_vector():
 
 def test_scripts_after_spaces():
     assert ("\\sigma", True, "") in tokens(r"\sigma _e") and ("A", True, "") in tokens(r"A _{S}")
+
+
+# the checks from the user's notes on the Hill book (2026-11-01): each catches its planted defect, and the repair passes
+
+BOX_LEMMA = {"label": "lem:box", "kind": "lemma", "uses": ["def:wiring"],
+             "defines": [(r"\mathcal I_e", "open interval")], "binds": ["e"],
+             "math": [r"\mathcal I_e=(0,\nu_e)"], "text": ""}
+MULTIAFFINE = {"label": "lem:multiaffine", "kind": "lemma", "uses": ["lem:box"], "binds": ["w", "e"],
+               "math": [r"w_e\in\mathcal I_e"], "text": ""}
+
+
+def test_definition_inside_a_lemma_used_elsewhere():
+    assert ("local-def", "lem:box") in kinds(check([WIRING, BOX_LEMMA, MULTIAFFINE]))
+    # used only by its own proof: a local definition, fine
+    proof = {"label": "proof of lem:box", "kind": "proof", "parent": "lem:box", "math": [r"\mathcal I_e"], "text": ""}
+    assert check([WIRING, BOX_LEMMA, proof]) == []
+    # moved into a definition: fine
+    box_def = {**BOX_LEMMA, "label": "def:box", "kind": "definition", "terms": []}
+    assert check([WIRING, box_def, {**MULTIAFFINE, "uses": ["def:box"]}]) == []
+
+
+def test_one_letter_two_roles():
+    corner = {**BOX_LEMMA, "binds": ["e", r"z \in \{0,1\}^E"]}
+    point = {**MULTIAFFINE, "binds": [r"z \in \mathbb R^E", "e"], "math": [r"z_e"]}
+    assert ("two-roles", "lem:multiaffine") in kinds(check([WIRING, corner, point]))
+    # the same type, or items that do not depend on each other: fine
+    assert "two-roles" not in {p["kind"] for p in check([WIRING, corner, {**point, "binds": [r"z \in \{0,1\}^E", "e"]}])}
+    assert "two-roles" not in {p["kind"] for p in check([WIRING, corner, {**point, "uses": ["def:wiring"]}])}
+
+
+def test_symbol_without_a_uses_path():
+    lemma = {"label": "lem:x", "kind": "lemma", "uses": [], "binds": ["e"], "math": [r"M_e"], "text": ""}
+    assert ("uses", "lem:x") in kinds(check([WIRING, MATRIX_UNIT, lemma]))
+    # through another item, or through its statement (a proof): fine
+    mid = {"label": "lem:mid", "kind": "lemma", "uses": ["def:matrix-unit"], "math": [], "text": ""}
+    assert check([WIRING, MATRIX_UNIT, mid, {**lemma, "uses": ["lem:mid"]}]) == []
+    proof = {"label": "proof of lem:mid", "kind": "proof", "parent": "lem:mid", "uses": [], "binds": ["e"],
+             "math": [r"M_e"], "text": ""}
+    assert check([WIRING, MATRIX_UNIT, mid, proof]) == []
+    # an item without a "uses" field (another front end) is not checked
+    assert check([WIRING, MATRIX_UNIT, {k: v for k, v in lemma.items() if k != "uses"}]) == []
+
+
+def test_proof_treats_every_part():
+    st = {"label": "lem:p", "kind": "lemma", "parts": 3, "math": [], "text": ""}
+    proof = {"label": "proof of lem:p", "kind": "proof", "parent": "lem:p", "math": [], "text": "(1) ... (3) ..."}
+    assert ("proof-parts", "proof of lem:p") in kinds(check([st, proof]))
+    assert check([st, {**proof, "text": "(1) a. (2) b. (3) c."}]) == []
