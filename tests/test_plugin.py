@@ -74,7 +74,7 @@ PROOF_DOC = r"""\documentclass{report}
 \newtheorem{conjecture}[definition]{Conjecture}
 \begin{document}
 \chapter{C}
-\begin{definition}\label{def:a}\defines{a}{real number} Let $a=1$.\end{definition}
+\begin{definition}\label{def:a}\defines[X.a]{a}{real number} Let $a=1$.\end{definition}
 \begin{theorem}\label{thm:lean}\uses{def:a}\lean{X.ok} $a>0$.\end{theorem}
 \begin{lemma}\label{lem:paper}\uses{def:a} $a\ge0$.\end{lemma}
 \begin{proof} Since $a=1$.\end{proof}
@@ -102,7 +102,10 @@ def test_proof_chips(tmp_path):
     assert proof["def:a"] is None
     items = {i["label"]: i for i in json.loads((tmp_path / "blueprint-data.json").read_text())["items"]}
     assert items["thm:lean"]["number"] == "1.2" and items["thm:lean"]["tex"] == "$a>0$."
-    assert items["def:a"]["tex"] == "Let $a=1$."   # \defines and \label removed from the text
+    assert items["def:a"]["tex"] == "Let $a=1$."   # \defines (with its Lean name) and \label removed from the text
+    syms = json.loads((tmp_path / "blueprint-data.json").read_text())["symbols"]
+    assert {"sym": "a", "type": "real number", "label": "def:a", "lean": "X.a"} in syms
+    assert items["thm:lean"]["where"] == {"chapter": "1 C"}
     html = (tmp_path / "p" / "sect0001.html").read_text()
     for cls, words in (("verified", "verified in Lean"), ("paper", "proof on paper"), ("none", "no proof yet"),
                        ("open", "open")):
@@ -134,3 +137,6 @@ def test_approve_markers_and_card_hash(tmp_path):
     b = _build(tmp_path / "b", tex.replace("Since $a=1$.", "Because $a=1$."), {"X.ok": "verified"})
     assert b["lem:paper"]["sha"] != a["lem:paper"]["sha"]
     assert b["thm:lean"]["sha"] == a["thm:lean"]["sha"]
+    (tmp_path / "c").mkdir()   # a metadata-only edit (a Lean name on \defines) is not a change of the card
+    c = _build(tmp_path / "c", tex.replace(r"\defines[X.a]{a}", r"\defines[X.b]{a}"), {"X.ok": "verified"})
+    assert c["def:a"]["sha"] == a["def:a"]["sha"]

@@ -87,13 +87,15 @@ def _split(src: str) -> list[str]:
 
 
 class defines(Command):
-    r"""\defines{symbol}{type}"""
-    args = "sym type"
+    r"""\defines[lean name]{symbol}{type}: the optional Lean name is the declaration the symbol stands for"""
+    args = "[ lean:str ] sym type"
 
     def digest(self, tokens):
         Command.digest(self, tokens)
         sym = re.sub(r"\s+", " ", _text(self.attributes["sym"])).strip()
         self.parentNode.userdata.setdefault("defines", []).append((sym, _text(self.attributes["type"]).strip()))
+        if self.attributes.get("lean"):
+            self.parentNode.userdata.setdefault("defines_lean", []).append((sym, self.attributes["lean"].strip()))
 
 
 class binds(Command):
@@ -167,31 +169,34 @@ def ProcessOptions(options, document):
             # \defines etc. digest into the paragraph that holds them: gather from the item's whole subtree
             defs, bnds, terms = list(n.userdata.get("defines", [])), list(n.userdata.get("binds", [])), \
                 list(n.userdata.get("terms", []))
+            leans = list(n.userdata.get("defines_lean", []))
             for d in n.allChildNodes if hasattr(n, "allChildNodes") else []:
                 if d is n or _owner(d.parentNode, ids) is not n:
                     continue
                 defs += d.userdata.get("defines", []) if hasattr(d, "userdata") else []
                 bnds += d.userdata.get("binds", []) if hasattr(d, "userdata") else []
                 terms += d.userdata.get("terms", []) if hasattr(d, "userdata") else []
+                leans += d.userdata.get("defines_lean", []) if hasattr(d, "userdata") else []
             maths = [m for m in n.getElementsByTagName(("math", "displaymath", "equation", "equation*", "align",
                                                          "align*")) if _owner(m.parentNode, ids) is n]
             kind = getattr(n, "tagName", n.nodeName)
             label = n.id
             if re.fullmatch(r"a\d+", label or ""):     # no \label: name it by what it is
                 label = f"proof of {parent_label}" if parent_label else kind
-            items.append({"label": label, "kind": kind, "defines": defs, "binds": bnds, "terms": terms,
+            items.append({"label": label, "kind": kind, "defines": defs, "binds": bnds, "terms": terms, "leans": dict(leans),
                           "math": [m.source for m in maths], "text": n.textContent, "parent": parent_label,
                           "node": n})
         return items
 
     def check() -> None:
         items = collect()
-        problems = core.check([{k: v for k, v in it.items() if k != "node"} for it in items])
+        problems = core.check([{k: v for k, v in it.items() if k not in ("node", "leans")} for it in items])
         by_label = {it["label"]: it["node"] for it in items}
         table = {}
         for it in items:
             for sym, ty in it["defines"]:
-                table.setdefault(core.key_of(sym), {"sym": sym, "type": ty, "label": it["label"]})
+                table.setdefault(core.key_of(sym), {"sym": sym, "type": ty, "label": it["label"],
+                                                     "lean": it.get("leans", {}).get(sym)})
         state.update(items=items, problems=problems, table=table, by_label=by_label)
         outdir = Path(document.userdata.get("working-dir", ".")).resolve()
         (outdir / "symbols-report.json").write_text(json.dumps(problems, indent=1) + "\n")
@@ -301,10 +306,12 @@ def ProcessOptions(options, document):
     approve = "approve" in options
 
     def card_sha(node) -> str:
-        src = node.source or ""
+        """A hash of what the reader sees: the item's text and its proof's, without labels, \uses, \lean and other
+        metadata (a metadata edit is not a change of the card)."""
+        src = body_tex(node.source or "")
         proof = node.userdata.get("proved_by")
         if proof is not None:
-            src += "\n" + (proof.source or "")
+            src += "\n" + body_tex(proof.source or "")
         return hashlib.sha256(src.encode()).hexdigest()[:16]
 
     def apply_shas():
@@ -333,6 +340,8 @@ def ProcessOptions(options, document):
             m = re.match(r"\\([A-Za-z]+)\s*", src[i:])
             if m and m.group(1) in META + ("defterm",):
                 j = i + m.end()
+                if j < len(src) and src[j] == "[":   # an optional argument (\defines[lean name]{...}{...})
+                    j = src.index("]", j) + 1
                 groups = []
                 while j < len(src) and src[j] == "{" and len(groups) < (2 if m.group(1) == "defines" else 1):
                     depth, k = 0, j
@@ -353,6 +362,17 @@ def ProcessOptions(options, document):
             i += 1
         return re.sub(r"\n\s*\n\s*", "\n\n", "".join(out)).strip()
 
+    def section_of(node) -> dict:
+        """The chapter and section an item sits in (number and title), for applications that group items."""
+        out = {}
+        p = node.parentNode
+        while p is not None:
+            if getattr(p, "nodeName", "") in ("chapter", "section", "subsection") and getattr(p, "title", None) is not None:
+                ref = p.ref.textContent if getattr(p, "ref", None) is not None else ""
+                out.setdefault(p.nodeName, f"{ref} {p.title.textContent}".strip())
+            p = p.parentNode
+        return out
+
     # machine-readable output
     def export() -> None:
         items = state.get("items", [])
@@ -367,9 +387,9 @@ def ProcessOptions(options, document):
                                  "status": state["node_status"](n) if "node_status" in state else None,
                                  "proof": n.userdata.get("symbols_proof"), "sha": n.userdata.get("symbols_sha"),
                                  "number": n.ref.textContent if getattr(n, "ref", None) is not None else None,
-                                 "tex": body_tex(n.source or "")})
+                                 "tex": body_tex(n.source or ""), "where": section_of(n)})
         for key, e in state.get("table", {}).items():
-            out["symbols"].append({"sym": e["sym"], "type": e["type"], "label": e["label"]})
+            out["symbols"].append({"sym": e["sym"], "type": e["type"], "label": e["label"], "lean": e.get("lean")})
         outdir = Path(document.userdata.get("working-dir", ".")).resolve()
         (outdir / "blueprint-data.json").write_text(json.dumps(out, indent=1) + "\n")
 
