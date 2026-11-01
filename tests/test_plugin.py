@@ -100,6 +100,9 @@ def test_proof_chips(tmp_path):
     assert proof["thm:lean"] == "verified" and proof["lem:paper"] == "paper"
     assert proof["lem:stated"] == "none" and proof["lem:bare"] == "none" and proof["conj:c"] == "open"
     assert proof["def:a"] is None
+    items = {i["label"]: i for i in json.loads((tmp_path / "blueprint-data.json").read_text())["items"]}
+    assert items["thm:lean"]["number"] == "1.2" and items["thm:lean"]["tex"] == "$a>0$."
+    assert items["def:a"]["tex"] == "Let $a=1$."   # \defines and \label removed from the text
     html = (tmp_path / "p" / "sect0001.html").read_text()
     for cls, words in (("verified", "verified in Lean"), ("paper", "proof on paper"), ("none", "no proof yet"),
                        ("open", "open")):

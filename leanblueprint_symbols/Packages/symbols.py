@@ -322,6 +322,37 @@ def ProcessOptions(options, document):
                     '{{ obj.userdata.symbols_proof_text }}</span>{% endif %}')
     document.userdata.setdefault("thm_header_extras_tpl", []).append(chip)
 
+    # an item's text for other applications: its TeX without the environment and the metadata commands
+    META = ("label", "uses", "lean", "leanok", "notready", "proves", "mathlibok", "discussion", "defines", "binds")
+
+    def body_tex(src: str) -> str:
+        src = re.sub(r"^\\begin\{[^}]*\}(\[[^\]]*\])?", "", src.strip())
+        src = re.sub(r"\\end\{[^}]*\}$", "", src)
+        out, i = [], 0
+        while i < len(src):
+            m = re.match(r"\\([A-Za-z]+)\s*", src[i:])
+            if m and m.group(1) in META + ("defterm",):
+                j = i + m.end()
+                groups = []
+                while j < len(src) and src[j] == "{" and len(groups) < (2 if m.group(1) == "defines" else 1):
+                    depth, k = 0, j
+                    while k < len(src):
+                        depth += {"{": 1, "}": -1}.get(src[k], 0)
+                        if depth == 0:
+                            break
+                        k += 1
+                    groups.append(src[j + 1:k])
+                    j = k + 1
+                    while j < len(src) and src[j] in " \t" and m.group(1) != "defterm":
+                        j += 1
+                if m.group(1) == "defterm" and groups:
+                    out.append(groups[0])
+                i = j
+                continue
+            out.append(src[i])
+            i += 1
+        return re.sub(r"\n\s*\n\s*", "\n\n", "".join(out)).strip()
+
     # machine-readable output
     def export() -> None:
         items = state.get("items", [])
@@ -334,7 +365,9 @@ def ProcessOptions(options, document):
                                  "lean": n.userdata.get("leandecls", []), "uses": uses, "parent": it["parent"],
                                  "defines": [s for s, _ in it["defines"]], "terms": it["terms"],
                                  "status": state["node_status"](n) if "node_status" in state else None,
-                                 "proof": n.userdata.get("symbols_proof"), "sha": n.userdata.get("symbols_sha")})
+                                 "proof": n.userdata.get("symbols_proof"), "sha": n.userdata.get("symbols_sha"),
+                                 "number": n.ref.textContent if getattr(n, "ref", None) is not None else None,
+                                 "tex": body_tex(n.source or "")})
         for key, e in state.get("table", {}).items():
             out["symbols"].append({"sym": e["sym"], "type": e["type"], "label": e["label"]})
         outdir = Path(document.userdata.get("working-dir", ".")).resolve()
