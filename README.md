@@ -5,7 +5,8 @@ Declared, checked and hyperlinked symbols for [Lean blueprints](https://github.c
 A blueprint links each statement to its Lean declaration and draws the dependency graph between statements. This
 plugin works one level down, on the symbols inside formulas:
 
-* **Declarations.** An item says which symbols it introduces, with their types: `\defines{M_e}{matrix in $\mathbb R^{n\times n}$}`.
+* **Declarations.** An item says which symbols it introduces, with their types: `\defines{M_e}{matrix in $\mathbb R^{n\times n}$}`,
+  optionally with the Lean declaration the symbol stands for: `\defines[GRN.General.cornerMatrix]{A_S}{...}` (exported with the symbols).
   Symbols bound locally are listed with `\binds{e,k,l}`, and defined terms are marked where they are defined with
   `\defterm{matrix unit}`.
 * **Checks at build time.** The checker reports every symbol used before any item declares it, a symbol declared twice
@@ -31,7 +32,8 @@ plugin works one level down, on the symbols inside formulas:
   with a filter, the current section, the text size, and item tools that work on touch screens. The dependency graph
   page gets the same theme.
 * **Machine-readable output.** `blueprint-data.json` holds the items, their dependencies, Lean names, symbols and
-  status for other applications; `symbols-report.json` holds the checker's problems.
+  status, each item's chapter and section, its text and a hash of what the reader sees (statement and proof, without
+  metadata) for other applications; `symbols-report.json` holds the checker's problems.
 
 ## Use
 
