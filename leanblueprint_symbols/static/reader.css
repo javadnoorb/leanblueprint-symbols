@@ -54,6 +54,13 @@ mjx-container[jax] a:hover { fill: var(--r-link-h) !important; stroke: var(--r-l
 mjx-container a rect[data-hitbox] { fill: none !important; stroke: none !important; }   /* MathJax's invisible hit area */
 mjx-container[display="true"], div.displaymath { overflow-x: auto; overflow-y: hidden; max-width: 100%; }
 mjx-container[display="true"] { padding: 2px 0; }
+/* an inline formula wider than the column (MathJax does not break inline math; reader.js marks it r-wide) scrolls
+   inside its own box instead of widening the page; other inline formulas keep their baseline */
+mjx-container.r-wide { display: inline-block; max-width: 100%; overflow-x: auto; overflow-y: hidden; vertical-align: middle; }
+/* a formula that scrolls sideways fades at the right edge, so it shows there is more */
+mjx-container.r-wide, mjx-container.r-scroll { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
+mjx-container.r-end { -webkit-mask-image: none; mask-image: none; }
 
 /* items */
 div[class*="_thmwrapper"] { margin: 1.4em 0 .6em; padding: .7em 1em .75em; background: var(--r-panel);

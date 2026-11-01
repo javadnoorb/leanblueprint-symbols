@@ -95,6 +95,29 @@
     window.addEventListener('scroll', () => { if (!ticking) { ticking = true; requestAnimationFrame(update); } }, { passive: true });
     update();
   }
+  // inline formulas wider than their line: scroll inside themselves (reader.css .r-wide), not the page
+  function markWide() {
+    document.querySelectorAll('mjx-container[jax]:not([display="true"])').forEach((m) => {
+      m.classList.remove('r-wide');
+      const host = m.parentElement;
+      if (host && m.getBoundingClientRect().width > host.clientWidth + 1) m.classList.add('r-wide');
+    });
+    // displayed formulas that scroll: the fade (reader.css), dropped once scrolled to the end
+    document.querySelectorAll('mjx-container[display="true"], mjx-container.r-wide').forEach((m) => {
+      const scrolls = m.scrollWidth > m.clientWidth + 1;
+      m.classList.toggle('r-scroll', scrolls);
+      if (scrolls && !m.dataset.rFade) {
+        m.dataset.rFade = '1';
+        m.addEventListener('scroll', () => m.classList.toggle('r-end', m.scrollLeft + m.clientWidth >= m.scrollWidth - 2), { passive: true });
+      }
+    });
+  }
+  window.addEventListener('load', () => {
+    const p = window.MathJax && MathJax.startup && MathJax.startup.promise;
+    (p || Promise.resolve()).then(markWide);
+  });
+  let rt = 0;
+  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(markWide, 150); });
   function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build); else build();
 })();
