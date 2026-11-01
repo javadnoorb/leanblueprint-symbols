@@ -124,5 +124,65 @@
     }
     showBack();
   });
+  // ---- approvals (option approve): an Approve button at the foot of each labelled card, bound to the card's hash.
+  // A host page (one embedding this page in a frame, say) can store them by setting, on this window,
+  //   window.symbolsApprovalHost = { load: () => Promise<{label: {status, sha}}>, set: (label, sha, ok) => Promise<bool> }
+  // and then calling window.symbolsApprovals.refresh(). Without a host they stay in this browser (localStorage).
+  const AKEY = 'sym-approvals:' + location.pathname;
+  const local = {
+    load: async () => { try { return JSON.parse(localStorage.getItem(AKEY) || '{}'); } catch (e) { return {}; } },
+    set: async (label, sha, ok) => {
+      try { const m = JSON.parse(localStorage.getItem(AKEY) || '{}');
+        m[label] = { status: ok ? 'ok' : 'none', sha, at: new Date().toISOString() };
+        localStorage.setItem(AKEY, JSON.stringify(m)); return true; } catch (e) { return false; }
+    },
+  };
+  const host = () => window.symbolsApprovalHost || local;
+  let marks = {};
+  function cards() {
+    return [...document.querySelectorAll('.sym-approve[data-label]')].map((m) => ({
+      m, label: m.dataset.label, sha: m.dataset.sha, card: m.closest('div[class*="_thmwrapper"]') }));
+  }
+  function stateOf(c) {
+    const a = marks[c.label];
+    return !a || a.status !== 'ok' ? 'none' : a.sha === c.sha ? 'ok' : 'changed';
+  }
+  function paint() {
+    for (const c of cards()) {
+      if (!c.card) continue;
+      // the foot of the statement's card; the hash covers its proof too, so an edited proof shows as changed
+      let foot = c.card.querySelector(':scope > .sym-foot');
+      if (!foot) {
+        foot = document.createElement('div'); foot.className = 'sym-foot';
+        foot.innerHTML = '<span class="sym-astate" aria-live="polite"></span><button type="button" class="sym-abtn"></button>';
+        c.card.appendChild(foot);
+        foot.querySelector('button').addEventListener('click', () => toggle(c));
+      }
+      const st = stateOf(c), b = foot.querySelector('button'), t = foot.querySelector('.sym-astate');
+      foot.dataset.state = st;
+      c.card.classList.toggle('sym-approved', st === 'ok');
+      t.textContent = st === 'ok' ? '✓ Approved' : st === 'changed' ? 'Changed since you approved it' : '';
+      b.textContent = st === 'ok' ? 'Withdraw' : st === 'changed' ? 'Approve again' : 'Approve';
+      b.setAttribute('aria-label', b.textContent + ' ' + c.label);
+    }
+    document.dispatchEvent(new CustomEvent('symbols:approvals', { detail: marks }));
+  }
+  async function toggle(c) {
+    const ok = stateOf(c) !== 'ok';
+    const b = c.card.querySelector('.sym-foot button'); b.disabled = true;
+    try {
+      if (await host().set(c.label, c.sha, ok)) marks[c.label] = { status: ok ? 'ok' : 'none', sha: c.sha };
+    } catch (e) { /* the host said why (a toast) */ }
+    b.disabled = false; paint();
+  }
+  async function refresh() { try { marks = (await host().load()) || {}; } catch (e) { marks = {}; } paint(); }
+  window.symbolsApprovals = { refresh, state: (label) => marks[label] };
+  // in a frame, give the host a moment to install itself (it calls refresh), so the browser's own store is not used
+  // by mistake; on its own, the page paints at once
+  function start() { if (window.parent === window) refresh(); else setTimeout(() => { if (!window.symbolsApprovalHost) refresh(); }, 2000); }
+  if (document.querySelector('.sym-approve')) {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+  }
+
   function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 })();

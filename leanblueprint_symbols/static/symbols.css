@@ -46,3 +46,16 @@ div.thm_header_extras { display: inline-flex; align-items: center; }
 .proofchip-paper { color: var(--chip-paper); background: var(--chip-paper-bg); }
 .proofchip-none { color: var(--chip-none); background: var(--chip-none-bg); }
 .proofchip-open { color: var(--chip-open); background: var(--chip-open-bg); }
+
+/* approvals (option approve): the foot of each card */
+.sym-foot { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: .6em; padding-top: .5em;
+  border-top: 1px dashed var(--s-line); font: 500 13px var(--r-sans, system-ui, sans-serif); }
+.sym-foot .sym-astate { color: var(--s-mut); }
+.sym-foot[data-state="ok"] .sym-astate { color: var(--chip-ok); }
+.sym-foot[data-state="changed"] .sym-astate { color: var(--chip-none); }
+.sym-foot .sym-abtn { min-height: 34px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--s-line); cursor: pointer;
+  background: var(--s-soft); color: var(--s-fg); font: inherit; }
+.sym-foot[data-state="none"] .sym-abtn, .sym-foot[data-state="changed"] .sym-abtn { border-color: var(--s-link); color: var(--s-link); }
+.sym-foot[data-state="ok"] .sym-abtn { background: transparent; color: var(--s-mut); }
+.sym-foot .sym-abtn:disabled { opacity: .5; cursor: progress; }
+#sym-pop .sym-foot { display: none; }

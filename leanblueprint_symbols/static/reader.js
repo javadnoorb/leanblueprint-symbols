@@ -80,6 +80,18 @@
       applySize(px); store.set(SIZE_KEY, px);
     });
 
+    // approvals (symbols.js): a check after each approved item in the contents
+    document.addEventListener('symbols:approvals', () => {
+      list.forEach((it, i) => {
+        const a = !it.ch && window.symbolsApprovals && window.symbolsApprovals.state(it.el.id);
+        const sha = (it.el.querySelector('.sym-approve') || {}).dataset;
+        const ok = !!(a && a.status === 'ok' && sha && a.sha === sha.sha);
+        const link = toc.querySelector('a[data-i="' + i + '"]');
+        let m = link.querySelector('.r-ok');
+        if (ok && !m) { m = document.createElement('span'); m.className = 'r-ok'; m.textContent = '✓'; m.title = 'approved'; link.appendChild(m); }
+        if (!ok && m) m.remove();
+      });
+    });
     // the section being read: the last heading or item above the top of the window
     const where = bar.querySelector('.r-where');
     const links = toc.querySelectorAll('a');

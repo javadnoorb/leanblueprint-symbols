@@ -104,3 +104,30 @@ def test_proof_chips(tmp_path):
     for cls, words in (("verified", "verified in Lean"), ("paper", "proof on paper"), ("none", "no proof yet"),
                        ("open", "open")):
         assert f'proofchip-{cls}">{words}<' in html, cls
+
+
+def _build(tmp_path, tex, status=None, name="p"):
+    (tmp_path / f"{name}.tex").write_text(tex)
+    if status is not None:
+        (tmp_path / "status.json").write_text(json.dumps(status))
+    env = dict(os.environ, PATH=f"{BIN}:{os.environ['PATH']}")
+    r = subprocess.run([str(BIN / "plastex"), "--plugins", "leanblueprint", "leanblueprint_symbols", "--", f"{name}.tex"],
+                       cwd=tmp_path, env=env, capture_output=True, text=True, timeout=600)
+    assert r.returncode == 0, r.stderr[-2000:]
+    return {i["label"]: i for i in json.loads((tmp_path / "blueprint-data.json").read_text())["items"]}
+
+
+@pytest.mark.slow
+def test_approve_markers_and_card_hash(tmp_path):
+    """Option approve: each labelled card carries a marker with its label and hash; the hash covers the card's proof,
+    so editing only the proof changes it, and a card that did not change keeps its hash."""
+    tex = PROOF_DOC.replace(r"\usepackage[status=status.json]{symbols}", r"\usepackage[status=status.json,approve]{symbols}")
+    (tmp_path / "a").mkdir()
+    a = _build(tmp_path / "a", tex, {"X.ok": "verified"})
+    html = (tmp_path / "a" / "p" / "sect0001.html").read_text()
+    assert f'data-label="lem:paper" data-sha="{a["lem:paper"]["sha"]}"' in html
+    assert html.count('class="sym-approve"') == len([i for i in a.values() if i["sha"]])
+    (tmp_path / "b").mkdir()
+    b = _build(tmp_path / "b", tex.replace("Since $a=1$.", "Because $a=1$."), {"X.ok": "verified"})
+    assert b["lem:paper"]["sha"] != a["lem:paper"]["sha"]
+    assert b["thm:lean"]["sha"] == a["thm:lean"]["sha"]

@@ -22,6 +22,11 @@ plugin works one level down, on the symbols inside formulas:
   Lean" (each Lean declaration it names is verified, by the status file, or `\leanok` without one), "proof on
   paper" (a proof follows it in the text) or "no proof yet". A `conjecture` environment is an item too; its chip says
   "open". The labels Theorem, Lemma, ... say how much a result matters; the chip says whether it is proved.
+* **Approvals** (option `approve`): an Approve button at the foot of each labelled card, bound to a hash of the
+  card's source (its proof included), so a card edited after its approval shows "changed since you approved it".
+  Approvals stay in the browser unless a host page stores them: a page embedding the text sets
+  `window.symbolsApprovalHost = {load, set}` on the text's window and calls `window.symbolsApprovals.refresh()`.
+  The hashes are also in `blueprint-data.json` (`items[].sha`).
 * **Reader theme** (option `reader`): a reading column, light and dark modes, items set off by kind, a contents panel
   with a filter, the current section, the text size, and item tools that work on touch screens. The dependency graph
   page gets the same theme.
@@ -55,6 +60,7 @@ plastex --plugins leanblueprint leanblueprint_symbols -- web.tex
 | `strict` | stop the build when the checker reports a problem |
 | `status=FILE` | JSON `{lean name: status}` or `{lean name: {"status": ..., "url": ...}}`; status is `verified`, `stated`, `sorry-free` or `missing` |
 | `reader` | the reader theme (reader.css, reader.js), also on the dependency graph page |
+| `approve` | an Approve button on each labelled card (see Approvals) |
 | `css=URL` | one more stylesheet linked from every page (for example locally served fonts) |
 | `envs=a+b+c` | the environments that are items (default: definition, lemma, theorem, proposition, corollary, conjecture, remark, example, notation, proof); add `conjecture` to blueprint's `thms` option to put conjectures in the graph |
 

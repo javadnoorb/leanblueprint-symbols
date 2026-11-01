@@ -137,6 +137,7 @@ nav.prev_up_next:empty { display: none; }
 #r-toc a .r-dot { flex: 0 0 8px; height: 8px; border-radius: 50%; margin: 0 2px 0 auto; align-self: center; background: currentColor; }
 #r-toc a .r-dot.proofchip-verified { color: var(--chip-ok); } #r-toc a .r-dot.proofchip-paper { color: var(--chip-paper); }
 #r-toc a .r-dot.proofchip-none { color: var(--chip-none); } #r-toc a .r-dot.proofchip-open { color: var(--chip-open); }
+#r-toc a .r-ok { flex: 0 0 auto; color: var(--chip-ok); font-weight: 600; }
 #r-toc a .t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (min-width: 1180px) {
   body.r-wide #r-toc { transform: none; box-shadow: none; }

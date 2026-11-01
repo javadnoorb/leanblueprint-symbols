@@ -25,6 +25,9 @@ Options:
     reader          the reader theme: a reading column, light and dark, a contents panel and text size (reader.css,
                     reader.js; also styles the dependency graph page)
     css=URL         one more stylesheet linked from every page (e.g. locally served fonts)
+    approve         an Approve button at the foot of each labelled card, bound to a hash of the card's source (its
+                    proof included); approvals live in the browser, or with a host page that provides
+                    window.symbolsApprovalHost (see symbols.js)
     envs=a+b+c      environments that are items (default: definition, lemma, theorem, proposition, corollary,
                     remark, example, notation, proof)
 
@@ -37,6 +40,7 @@ opens a preview of the item in place (symbols.js), with "Go to" and "Back to whe
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -292,6 +296,28 @@ def ProcessOptions(options, document):
         state["proof_state"] = lambda n: n.userdata.get("symbols_proof")
 
     document.addPostParseCallbacks(175, apply_proof_states)
+
+    # a hash of each card's source (with its proof), for approvals bound to what was read
+    approve = "approve" in options
+
+    def card_sha(node) -> str:
+        src = node.source or ""
+        proof = node.userdata.get("proved_by")
+        if proof is not None:
+            src += "\n" + (proof.source or "")
+        return hashlib.sha256(src.encode()).hexdigest()[:16]
+
+    def apply_shas():
+        for node in document.getElementsByTagName(tuple(e for e in envs if e != "proof")):
+            if node.id and not re.fullmatch(r"a\d+", node.id):
+                node.userdata["symbols_sha"] = card_sha(node)
+                if approve:
+                    node.userdata["symbols_approve"] = True
+
+    document.addPostParseCallbacks(176, apply_shas)
+    marker = Template('{% if obj.userdata.symbols_approve %}<span class="sym-approve" hidden data-label="{{ obj.id }}" '
+                      'data-sha="{{ obj.userdata.symbols_sha }}"></span>{% endif %}')
+    document.userdata.setdefault("thm_header_extras_tpl", []).append(marker)
     chip = Template('{% if obj.userdata.symbols_proof %}<span class="proofchip proofchip-{{ obj.userdata.symbols_proof }}">'
                     '{{ obj.userdata.symbols_proof_text }}</span>{% endif %}')
     document.userdata.setdefault("thm_header_extras_tpl", []).append(chip)
@@ -308,7 +334,7 @@ def ProcessOptions(options, document):
                                  "lean": n.userdata.get("leandecls", []), "uses": uses, "parent": it["parent"],
                                  "defines": [s for s, _ in it["defines"]], "terms": it["terms"],
                                  "status": state["node_status"](n) if "node_status" in state else None,
-                                 "proof": n.userdata.get("symbols_proof")})
+                                 "proof": n.userdata.get("symbols_proof"), "sha": n.userdata.get("symbols_sha")})
         for key, e in state.get("table", {}).items():
             out["symbols"].append({"sym": e["sym"], "type": e["type"], "label": e["label"]})
         outdir = Path(document.userdata.get("working-dir", ".")).resolve()
