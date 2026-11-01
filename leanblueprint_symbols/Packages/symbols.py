@@ -306,7 +306,7 @@ def ProcessOptions(options, document):
     approve = "approve" in options
 
     def card_sha(node) -> str:
-        """A hash of what the reader sees: the item's text and its proof's, without labels, \uses, \lean and other
+        r"""A hash of what the reader sees: the item's text and its proof's, without labels, \uses, \lean and other
         metadata (a metadata edit is not a change of the card)."""
         src = body_tex(node.source or "")
         proof = node.userdata.get("proved_by")
