@@ -168,3 +168,11 @@ def test_proof_treats_every_part():
     proof = {"label": "proof of lem:p", "kind": "proof", "parent": "lem:p", "math": [], "text": "(1) ... (3) ..."}
     assert ("proof-parts", "proof of lem:p") in kinds(check([st, proof]))
     assert check([st, {**proof, "text": "(1) a. (2) b. (3) c."}]) == []
+
+
+def test_a_symbol_declared_here_is_not_a_use_of_another():
+    # f^or_{W,theta} declared in this item is not a use of f_{W,theta} declared elsewhere
+    model = {"label": "def:model", "kind": "definition", "defines": [("f_W", "map")], "math": [], "text": ""}
+    orm = {"label": "def:or", "kind": "definition", "uses": [], "defines": [(r"f^{\mathrm{or}}_W", "map")],
+           "math": [r"f^{\mathrm{or}}_W(x)"], "binds": ["x", "W"], "text": ""}
+    assert check([model, orm]) == []

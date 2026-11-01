@@ -267,7 +267,7 @@ def check(items: list[dict]) -> list[dict]:
         for src in it.get("math", []):
             for use in tokens(src):
                 k = _which(use, declared)
-                if k is None or k in seen or k in own or _matches(use, local) \
+                if k is None or k in seen or _matches(use, own) or _matches(use, local) \
                         or use in bound_in(src):
                     continue
                 seen.add(k)
