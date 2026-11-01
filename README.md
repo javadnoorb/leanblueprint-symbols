@@ -14,7 +14,8 @@ plugin works one level down, on the symbols inside formulas:
   contains). A `\contains` naming no item is a checker problem.
 * **Checks at build time.** The checker reports every symbol used before any item declares it, a symbol declared twice
   (one meaning per symbol), a declaration without a type, a defined term used before its definition, and explanatory
-  phrases ("i.e.", "so that", ...) inside definitions and statements. `symbols.diagnose` lists a `\defines` line to
+  phrases ("i.e.", "so that", ...) inside definitions and statements. A definition with a name (its title) must introduce that name as a
+  `\defterm` in its text, so the reader meets the name before the mathematics. `symbols.diagnose` lists a `\defines` line to
   complete for each undeclared symbol; the `strict` option stops the build on any problem.
 * **Hyperlinked formulas.** Every declared symbol in every formula links to the item that declares it. Following a
   link opens a preview of that item where you are, with "Go to" and "Back to where you were". A tap that lands a

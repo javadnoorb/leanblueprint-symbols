@@ -15,7 +15,8 @@ Commands (inside a definition, lemma, theorem, ... or proof):
                                                          what an item relies on, \contains what it generalizes)
 
 After parsing, the checker (leanblueprint_symbols.core) reports undeclared, redeclared and untyped symbols, terms
-used before their definition, and explanatory phrases inside statements. It writes, next to the output directory:
+used before their definition, and explanatory phrases inside statements; and a definition with a name (its title)
+that does not introduce that name as a term in its text (\defterm). It writes, next to the output directory:
 
     symbols-report.json   the problems
     symbols.diagnose      a \defines line to complete for every undeclared symbol
@@ -206,6 +207,17 @@ def ProcessOptions(options, document):
     def check() -> None:
         items = collect()
         problems = core.check([{k: v for k, v in it.items() if k not in ("node", "leans", "contains")} for it in items])
+        for it in items:   # a definition with a name introduces that name as a term in its text (user, 2026-11-01)
+            title = getattr(it["node"], "title", None)
+            if it["kind"] != "definition" or title is None:
+                continue
+            names = [re.sub(r"^(the|a|an) ", "", x.strip().lower()) for x in re.split(r",| and ", title.textContent) if x.strip()]
+            terms = {t.lower() for t in it.get("terms", [])}
+            norm = lambda w: re.sub(r"(es|s)$", "", w)  # noqa: E731  (plural or not)
+            missing = [n for n in names if not any(norm(n) == norm(t) or norm(n) in norm(t) for t in terms)]
+            if missing:
+                problems.append({"kind": "unnamed", "label": it["label"],
+                                 "detail": f"its name ({', '.join(missing)}) is not introduced as a term (\\defterm) in its text"})
         labels = {it["label"] for it in items}
         for it in items:   # a \contains naming no item, or the item itself
             for c in it.get("contains", []):
@@ -233,7 +245,11 @@ def ProcessOptions(options, document):
 
     # links: every math node's MathJax source gets \href around declared symbols
     def resolve(key):
-        entry = state.get("table", {}).get(key) or (state.get("table", {}).get((key[0], key[1], "")))
+        T = state.get("table", {})
+        # the symbol itself, then without its decoration, then (a subscripted use of a symbol declared plain: sigma_e for
+        # sigma) its base: the checker accepts that use as declared, so it must link too (2026-11-01: sigma_e, nu_e
+        # were declared but not linked)
+        entry = T.get(key) or T.get((key[0], key[1], "")) or (T.get((key[0], False, "")) if key[1] else None)
         if entry is None:
             return None
         node = state["by_label"].get(entry["label"])

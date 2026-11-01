@@ -1,6 +1,7 @@
 """Build real documents with leanblueprint + this plugin; the control document (the clean one with the declaration
 of n removed) must be caught at every use of n, the clean one must pass, and links must point at the declaring item."""
 import json
+import re
 import os
 import shutil
 import subprocess
@@ -150,3 +151,24 @@ def test_contains_must_name_an_item(tmp_path):
     _build(tmp_path, tex, {"X.ok": "verified"})
     rep = json.loads((tmp_path / "symbols-report.json").read_text())
     assert any(p["kind"] == "contains" and "lem:nope" in p["detail"] for p in rep)
+
+
+@pytest.mark.slow
+def test_subscripted_use_of_a_plain_symbol_links(tmp_path):
+    """sigma declared plain, sigma_e used: the checker accepts it, so it must link (it did not, 2026-11-01)."""
+    tex = PROOF_DOC.replace(r"Let $a=1$.", r"Let $a=1$ and $a_e=2$.")
+    _build(tmp_path, tex, {"X.ok": "verified"})
+    html = (tmp_path / "p" / "sect0001.html").read_text()
+    assert re.search(r"\\href\{sect0001\.html#def:a\}\{a_e\}", html), "a_e not linked to def:a"
+
+
+@pytest.mark.slow
+def test_a_named_definition_must_introduce_its_name(tmp_path):
+    tex = PROOF_DOC.replace(r"\begin{definition}\label{def:a}", r"\begin{definition}[the constant]\label{def:a}")
+    _build(tmp_path, tex, {"X.ok": "verified"})
+    rep = json.loads((tmp_path / "symbols-report.json").read_text())
+    assert any(p["kind"] == "unnamed" and p["label"] == "def:a" for p in rep)
+    (tmp_path / "b").mkdir()
+    _build(tmp_path / "b", tex.replace("Let $a=1$.", r"The \defterm{constant} is $a=1$."), {"X.ok": "verified"})
+    rep = json.loads((tmp_path / "b" / "symbols-report.json").read_text())
+    assert not any(p["kind"] == "unnamed" for p in rep)
