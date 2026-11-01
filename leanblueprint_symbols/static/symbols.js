@@ -86,6 +86,7 @@
   }
   function jump(target) {
     remember();
+    if (window.readerOpenProof) window.readerOpenProof(target);   // a target inside a folded proof: open it
     if (location.hash === '#' + target.id) target.scrollIntoView({ block: 'start' });
     else location.hash = target.id;
     flash(itemOf(target));

@@ -28,8 +28,27 @@
     return out;
   }
 
+  // proofs start folded (the user, 2026-11-01): a proof opens when its heading is tapped (plastex.js) or a link leads
+  // into it
+  function foldProofs() {
+    document.querySelectorAll('div.proof_content').forEach((p) => { p.style.display = 'none'; });
+    document.querySelectorAll('div.proof_heading span.expand-proof').forEach((s) => { s.textContent = '▶'; });
+  }
+  function openProofAround(el) {
+    const w = el && el.closest && el.closest('div.proof_wrapper');
+    if (!w) return;
+    const c = w.querySelector('div.proof_content'), s = w.querySelector('span.expand-proof');
+    if (c) c.style.display = '';
+    if (s) s.textContent = '▼';
+  }
+  window.readerOpenProof = openProofAround;
+
   function build() {
     if (document.getElementById('graph') || !document.querySelector('.main-text')) return;
+    foldProofs();
+    const target = location.hash.length > 1 && document.getElementById(decodeURIComponent(location.hash.slice(1)));
+    if (target) openProofAround(target);
+    window.addEventListener('hashchange', () => openProofAround(document.getElementById(decodeURIComponent(location.hash.slice(1)))));
     const list = items();
     const bar = document.createElement('div');
     bar.id = 'r-bar';
