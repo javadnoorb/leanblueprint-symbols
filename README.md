@@ -70,6 +70,7 @@ plastex --plugins leanblueprint leanblueprint_symbols -- web.tex
 | option | effect |
 |---|---|
 | `strict` | stop the build when the checker reports a problem |
+| `lazymath=URL` | typeset formulas only as they come into view (MathJax 3.2's `ui/lazy`, loaded from `URL/ui/lazy.js`), with MathJax's menu and hidden MathML copy off: a page of ~1300 formulas settled in ~6 s instead of ~18 s on a phone-speed CPU |
 | `status=FILE` | JSON `{lean name: status}` or `{lean name: {"status": ..., "url": ...}}`; status is `verified`, `stated`, `sorry-free` or `missing` |
 | `reader` | the reader theme (reader.css, reader.js), also on the dependency graph page |
 | `approve` | an Approve button on each labelled card (see Approvals) |

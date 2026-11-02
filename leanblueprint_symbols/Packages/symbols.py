@@ -34,6 +34,8 @@ Options:
     approve         an Approve button at the foot of each labelled card, bound to a hash of the card's source (its
                     proof included); approvals live in the browser, or with a host page that provides
                     window.symbolsApprovalHost (see symbols.js)
+    lazymath=URL    typeset formulas only as they come into view (MathJax 3.2's ui/lazy, loaded from URL/ui/lazy.js),
+                    with MathJax's menu and its hidden MathML copy off: a long page opens several times faster
     envs=a+b+c      environments that are items (default: definition, lemma, theorem, proposition, corollary,
                     remark, example, notation, proof)
 
@@ -151,6 +153,7 @@ def ProcessOptions(options, document):
     document.addPackageResource(PackageTemplateDir(path=PKG / "renderer_templates"))
     reader = "reader" in options
     extra_css = options.get("css")
+    lazymath = options.get("lazymath")
     res = [PackageCss(path=STATIC / "symbols.css"), PackageJs(path=STATIC / "symbols.js")]
     if reader:
         res += [PackageCss(path=STATIC / "reader.css"), PackageJs(path=STATIC / "reader.js")]
@@ -177,6 +180,9 @@ def ProcessOptions(options, document):
         if "</head>" not in s:
             return s
         add = "" if "window.symbolsTerms" in s else terms_script()
+        if lazymath and "ui/lazy" not in s and "MathJax = {" in s:
+            s = s.replace("MathJax = {", "MathJax = { loader: { load: ['ui/lazy'], paths: { mathjax: " + json.dumps(lazymath)
+                          + " } }, options: { enableMenu: false, renderActions: { assistiveMml: [] } },", 1)
         if extra_css and extra_css not in s:
             add += f'<link rel="stylesheet" href="{extra_css}" />\n'
         if reader and "styles/reader.css" not in s:

@@ -183,3 +183,22 @@ def test_pages_carry_the_defined_terms(tmp_path):
     assert m, "no terms on the page"
     terms = {t: (url, label) for t, url, label in json.loads(m.group(1))}
     assert terms["matrix unit"][1] == "def:matrix-unit" and terms["matrix unit"][0].endswith("#def:matrix-unit")
+
+
+@pytest.mark.slow
+def test_lazymath_option(tmp_path):
+    # lazymath=URL: formulas typeset as they come into view (MathJax's ui/lazy from URL), menu and MathML copy off
+    src = (FIX / "clean.tex").read_text()
+    m = re.search(r"\\usepackage(\[[^\]]*\])?\{symbols\}", src)
+    opts = (m.group(1) or "[]")[1:-1]
+    (tmp_path / "lazy.tex").write_text(src.replace(m.group(0), "\\usepackage[" + (opts + "," if opts else "") + "lazymath=/m]{symbols}"))
+    for f in ("clean.tex", "control.tex"):
+        shutil.copy(FIX / f, tmp_path / f)
+    env = dict(os.environ, PATH=f"{BIN}:{os.environ['PATH']}")
+    r = subprocess.run([str(BIN / "plastex"), "--plugins", "leanblueprint", "leanblueprint_symbols", "--", "lazy.tex"],
+                       cwd=tmp_path, env=env, capture_output=True, text=True, timeout=600)
+    assert r.returncode == 0, r.stderr[-2000:]
+    html = (tmp_path / "lazy" / "index.html").read_text()
+    assert "load: ['ui/lazy']" in html and '"/m"' in html and "assistiveMml: []" in html
+    plain = build(tmp_path, "clean")[1] / "clean" / "index.html"
+    assert "ui/lazy" not in plain.read_text()
