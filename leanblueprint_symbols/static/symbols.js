@@ -60,9 +60,23 @@
     const q = (s) => ((h.querySelector('span[class$="' + s + '"]') || {}).textContent || '').trim();
     return (q('_thmcaption') + ' ' + q('_thmlabel')).trim();
   }
-  function openPop(target, x, y) {
+  // with lazy typesetting (option lazymath) a card far from the reader is not typeset yet: typeset its formulas now,
+  // through MathJax's own lazy queue (the ids its observer would add when they come into view)
+  async function typesetWithin(el) {
+    const mj = window.MathJax, doc = mj && mj.startup && mj.startup.document;
+    if (!doc || !doc.lazySet || !doc.lazyHandleSet) return;
+    const ids = [...el.querySelectorAll('mjx-lazy[data-mjx-lazy]')].map((n) => n.getAttribute('data-mjx-lazy'))
+      .filter((id) => doc.lazyList && doc.lazyList.get(id));
+    if (!ids.length) return;
+    ids.forEach((id) => doc.lazySet.add(id));
+    doc.lazyHandleSet();
+    try { await doc.lazyPromise; } catch (e) { /* shown untypeset rather than not at all */ }
+  }
+  window.symbolsTypesetWithin = typesetWithin;
+  async function openPop(target, x, y) {
     const item = itemOf(target);
     closePop();
+    await typesetWithin(item);
     pop = document.createElement('div');
     pop.id = 'sym-pop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Preview of ' + heading(item));
     const body = item.cloneNode(true);
