@@ -59,3 +59,5 @@ div.thm_header_extras { display: inline-flex; align-items: center; }
 .sym-foot[data-state="ok"] .sym-abtn { background: transparent; color: var(--s-mut); }
 .sym-foot .sym-abtn:disabled { opacity: .5; cursor: progress; }
 #sym-pop .sym-foot { display: none; }
+/* a defined term used in another card: a quiet link to its definition (preview on tap) */
+a.sym-term { color: inherit; text-decoration: underline dotted; text-decoration-color: var(--s-link, #1f5f99); text-underline-offset: 3px; }

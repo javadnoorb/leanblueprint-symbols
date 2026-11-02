@@ -156,20 +156,34 @@ def ProcessOptions(options, document):
         res += [PackageCss(path=STATIC / "reader.css"), PackageJs(path=STATIC / "reader.js")]
     document.addPackageResource(res)
 
+    def terms_script() -> str:
+        """The defined terms and where each is defined, for symbols.js to link their uses in other cards:
+        window.symbolsTerms = [[term, url, label], ...], longest first (so 'corner matrix' wins over 'corner')."""
+        if "terms_js" not in state:
+            out = []
+            for it in state.get("items", []):
+                node = state.get("by_label", {}).get(it["label"])
+                url = getattr(node, "url", None) if node is not None else None
+                for t in it.get("terms", []):
+                    if url:
+                        out.append([t, url, it["label"]])
+            out.sort(key=lambda x: -len(x[0]))
+            state["terms_js"] = "<script>window.symbolsTerms = " + json.dumps(out).replace("</", "<\\/") + ";</script>\n"
+        return state["terms_js"]
+
     def head_links(doc, s: str) -> str:
         """Every HTML page (the dependency graph pages too, which the package resources do not reach) links the
-        reader theme and the extra stylesheet once."""
+        reader theme and the extra stylesheet once, and carries the defined terms (terms_script)."""
         if "</head>" not in s:
             return s
-        add = ""
+        add = "" if "window.symbolsTerms" in s else terms_script()
         if extra_css and extra_css not in s:
             add += f'<link rel="stylesheet" href="{extra_css}" />\n'
         if reader and "styles/reader.css" not in s:
             add += '<link rel="stylesheet" href="styles/reader.css" />\n'
         return s.replace("</head>", add + "</head>", 1) if add else s
 
-    if reader or extra_css:
-        document.addPackageResource(PackageProcessFilecontents(data=head_links))
+    document.addPackageResource(PackageProcessFilecontents(data=head_links))
     state = document.userdata.setdefault("symbols", {})
 
     def collect() -> list:

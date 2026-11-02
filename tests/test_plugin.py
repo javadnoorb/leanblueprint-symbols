@@ -172,3 +172,14 @@ def test_a_named_definition_must_introduce_its_name(tmp_path):
     _build(tmp_path / "b", tex.replace("Let $a=1$.", r"The \defterm{constant} is $a=1$."), {"X.ok": "verified"})
     rep = json.loads((tmp_path / "b" / "symbols-report.json").read_text())
     assert not any(p["kind"] == "unnamed" for p in rep)
+
+
+@pytest.mark.slow
+def test_pages_carry_the_defined_terms(tmp_path):
+    # symbols.js links a term's uses in other cards to its definition: every page carries the terms and their targets
+    _, out = build(tmp_path, "clean")
+    html = (out / "clean" / "sect0001.html").read_text()
+    m = re.search(r"window\.symbolsTerms = (\[.*?\]);</script>", html)
+    assert m, "no terms on the page"
+    terms = {t: (url, label) for t, url, label in json.loads(m.group(1))}
+    assert terms["matrix unit"][1] == "def:matrix-unit" and terms["matrix unit"][0].endswith("#def:matrix-unit")

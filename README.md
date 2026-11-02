@@ -21,6 +21,8 @@ plugin works one level down, on the symbols inside formulas:
   with no `\uses` path to the item that declares it (notation items exempt; a proof depends on its statement); a
   statement in numbered parts whose proof has no "(k)" for some part. `symbols.diagnose` lists a `\defines` line to
   complete for each undeclared symbol; the `strict` option stops the build on any problem.
+* **Linked terms.** Every page carries its defined terms (`window.symbolsTerms`); the first use of a term in each other card
+  links to the card that defines it, with the same preview as a symbol (after MathJax, so TeX source is never touched).
 * **Hyperlinked formulas.** Every declared symbol in every formula links to the item that declares it. Following a
   link opens a preview of that item where you are, with "Go to" and "Back to where you were". A tap that lands a
   few pixels beside a small symbol still counts.

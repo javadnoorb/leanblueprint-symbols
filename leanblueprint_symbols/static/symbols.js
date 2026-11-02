@@ -116,7 +116,42 @@
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePop(); });
   window.addEventListener('resize', () => { if (pop && !pop.classList.contains('sheet')) closePop(); });
 
+  // ---- defined terms: the first use of a term in each other card links to the card that defines it (the same
+  // preview as a symbol). Run after MathJax has typeset, so TeX source in text nodes is never touched.
+  function linkTerms() {
+    const T = window.symbolsTerms || [];
+    if (!T.length) return;
+    const re = (t) => new RegExp('\\b' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?:s|es)?\\b', 'i');
+    const SKIP = 'a, mjx-container, script, style, button, .sym-foot, [class$="_thmheading"], h1, h2, h3, h4, .sym-term';
+    document.querySelectorAll('div[class*="_thmwrapper"], div.proof_wrapper').forEach((card) => {
+      const own = card.id || (card.previousElementSibling || {}).id || '';
+      const done = new Set();
+      for (const [term, url, label] of T) {
+        if (label === own || done.has(url + term)) continue;
+        const rx = re(term);
+        const walk = document.createTreeWalker(card, NodeFilter.SHOW_TEXT, {
+          acceptNode: (n) => (n.parentElement && !n.parentElement.closest(SKIP) && rx.test(n.nodeValue)
+            ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT) });
+        const node = walk.nextNode();
+        if (!node) continue;
+        const m = node.nodeValue.match(rx), i = m.index;
+        const a = document.createElement('a');
+        a.className = 'sym-term'; a.href = url; a.textContent = m[0];
+        a.title = 'defined in ' + label;
+        const rest = node.splitText(i); rest.nodeValue = rest.nodeValue.slice(m[0].length);
+        node.parentNode.insertBefore(a, rest);
+        done.add(url + term);
+      }
+    });
+  }
+  window.symbolsLinkTerms = linkTerms;
+  function afterMath(f) {
+    const mj = window.MathJax;
+    if (mj && mj.startup && mj.startup.promise) mj.startup.promise.then(f).catch(f); else f();
+  }
+
   window.addEventListener('load', () => {
+    afterMath(linkTerms);
     const m = location.hash.match(/^#sym-y-(\d+)$/);
     if (m) { window.scrollTo(0, +m[1]); history.replaceState(null, '', location.pathname); }
     else if (location.hash.length > 1) {
