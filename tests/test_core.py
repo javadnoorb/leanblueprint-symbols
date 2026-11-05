@@ -176,3 +176,40 @@ def test_a_symbol_declared_here_is_not_a_use_of_another():
     orm = {"label": "def:or", "kind": "definition", "uses": [], "defines": [(r"f^{\mathrm{or}}_W", "map")],
            "math": [r"f^{\mathrm{or}}_W(x)"], "binds": ["x", "W"], "text": ""}
     assert check([model, orm]) == []
+
+
+# The user's notes of 2026-11-01 to 11-05, made mechanical: each check catches the defect and passes the repair.
+BEHAVIOUR = {"label": "def:behaviour", "kind": "definition", "terms": ["behaviour"], "math": [],
+             "text": "A behaviour is ...", "names": ["behaviour"]}
+
+
+def _card(source, **kw):
+    return {"label": "lem:x", "kind": "lemma", "math": [], "text": "", "source": source, **kw}
+
+
+def test_ref_after_linked_term():
+    bad = _card(r"Each row is a behaviour (Definition~\ref{def:behaviour}).")
+    assert kinds(check([BEHAVIOUR, bad])) == [("ref-after-term", "lem:x")]
+    assert kinds(check([BEHAVIOUR, _card(r"Each row is a behaviours (Definition~\ref{def:behaviour}, part~2).")])) \
+        == [("ref-after-term", "lem:x")]
+    # repaired, or citing a formula rather than naming the term: clean
+    assert check([BEHAVIOUR, _card(r"Each row is a behaviour.")]) == []
+    assert check([BEHAVIOUR, _card(r"The sum is $\sum_e b_e$ (Definition~\ref{def:behaviour}).")]) == []
+    assert check([BEHAVIOUR, _card(r"A behaviour is fixed. The sum is $b$ (Definition~\ref{def:behaviour}).")]) == []
+
+
+def test_several_definitions_are_numbered():
+    two = {"label": "def:mb", "kind": "definition", "math": [], "text": "", "names": ["matrix box", "matrix corner"]}
+    assert kinds(check([two])) == [("unnumbered", "def:mb")]
+    assert check([{**two, "parts": 2}]) == []
+    assert check([{**two, "names": ["matrix box"]}]) == []
+
+
+def test_remark_a_proof_relies_on():
+    rem = {"label": "rem:c", "kind": "remark", "math": [], "text": ""}
+    by_uses = _card("", uses=["rem:c"])
+    by_ref = {"label": "proof of lem:x", "kind": "proof", "parent": "lem:x", "math": [], "text": "",
+              "source": r"By Remark~\ref{rem:c}, ..."}
+    assert kinds(check([rem, by_uses])) == [("remark-used", "rem:c")]
+    assert kinds(check([rem, _card(""), by_ref])) == [("remark-used", "rem:c")]
+    assert check([rem, _card("")]) == []

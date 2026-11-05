@@ -26,6 +26,14 @@ An *item* is one numbered unit (definition, lemma, theorem, proof, remark, ...) 
     uses         a symbol used in an item whose declaring item the item does not depend on (\\uses, directly or
                  through other items; a proof also through its statement); notation items are exempt
     proof-parts  a statement in numbered parts whose proof does not treat each part ("(1)", "(2)", ...)
+    ref-after-term  "(Definition~\\ref{L})" right after a term that L defines: the term is already a link to L
+    unnumbered   a definition whose title names several things ("matrix box, matrix corner") and whose text is not
+                 a numbered list, one item per definition
+    remark-used  a remark that another item depends on (\\uses) or that a proof cites (\\ref): a claim a proof
+                 relies on is a lemma, with a proof
+
+Optional fields for these: "source" (the item's TeX, for ref-after-term and remark-used) and "names" (the things
+the item's title names, for unnumbered).
 
 A bound symbol may carry a type: "w \\in \\mathcal B", "S \\subseteq E" or "w : point of the box" (the symbol
 is what comes before the first \\in, \\subseteq or colon).
@@ -314,6 +322,47 @@ def check(items: list[dict]) -> list[dict]:
         if missing:
             problems.append({"kind": "proof-parts", "label": it["label"],
                              "detail": f"{st['label']} has {n} parts; the proof has no ({'), ('.join(missing)})"})
+    problems += _writing(items)
+    return problems
+
+
+def _strip_math(tex: str) -> str:
+    tex = re.sub(r"\$\$.*?\$\$|\$[^$]*\$|\\\(.*?\\\)|\\\[.*?\\\]", " ", tex, flags=re.S)
+    return re.sub(r"\s+", " ", tex)
+
+
+REF = re.compile(r"\(\s*Definitions?~?\s*\\ref\{([^}]+)\}(?:\s*,\s*part~?\s*\S+?)?\s*\)")
+
+
+def _writing(items: list[dict]) -> list[dict]:
+    """Reading rules made mechanical (docs: the user's notes of 2026-11-01 to 11-05)."""
+    problems = []
+    terms = {it["label"]: [t.lower() for t in it.get("terms", [])] for it in items}
+    for it in items:
+        src = it.get("source") or ""
+        for m in REF.finditer(src):
+            target = m.group(1)
+            before = _strip_math(src[max(0, m.start() - 160):m.start()]).lower()
+            before = re.split(r"[.;:]\s", before)[-1][-80:]     # the same clause, just before the reference
+            hit = [t for t in terms.get(target, []) if target != it["label"]
+                   and re.search(r"\b" + re.escape(t) + r"(s|es)?\b", before)]
+            if hit:
+                problems.append({"kind": "ref-after-term", "label": it["label"],
+                                 "detail": f"'{hit[0]}' is already a link to {target}: drop \"{m.group(0).strip()}\""})
+        names = it.get("names") or []
+        if it.get("kind") == "definition" and len(names) >= 2 and it.get("parts", 0) < 2:
+            problems.append({"kind": "unnumbered", "label": it["label"],
+                             "detail": f"it defines {len(names)} things ({', '.join(names)}): number them, one per item"})
+    remarks = {it["label"] for it in items if it.get("kind") == "remark"}
+    for it in items:
+        if it["label"] in remarks:
+            continue
+        cited = set(it.get("uses", []))
+        if it.get("kind") == "proof":
+            cited |= set(re.findall(r"\\ref\{([^}]+)\}", it.get("source") or ""))
+        for r in sorted(cited & remarks):
+            problems.append({"kind": "remark-used", "label": r,
+                             "detail": f"{it['label']} relies on it: a remark nothing depends on, or a lemma with a proof"})
     return problems
 
 

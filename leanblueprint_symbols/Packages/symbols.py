@@ -225,7 +225,10 @@ def ProcessOptions(options, document):
             # numbered parts: the \item lines of the statement's own top-level list
             src = n.source or ""
             parts = len(re.findall(r"\\item\b", src)) if src.count("\\begin{enumerate}") == 1 else 0
-            items.append({"label": label, "kind": kind, "defines": defs, "binds": bnds, "terms": terms, "leans": dict(leans), "contains": conts,
+            title = getattr(n, "title", None)
+            names = [x.strip() for x in re.split(r",| and ", title.textContent) if x.strip()] \
+                if title is not None and kind == "definition" else []
+            items.append({"label": label, "kind": kind, "defines": defs, "source": src, "names": names, "binds": bnds, "terms": terms, "leans": dict(leans), "contains": conts,
                           "uses": uses, "parts": parts,
                           "math": [m.source for m in maths], "text": n.textContent, "parent": parent_label,
                           "node": n})
