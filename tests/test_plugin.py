@@ -202,3 +202,28 @@ def test_lazymath_option(tmp_path):
     assert "load: ['ui/lazy']" in html and '"/m"' in html and "assistiveMml: []" in html
     plain = build(tmp_path, "clean")[1] / "clean" / "index.html"
     assert "ui/lazy" not in plain.read_text()
+
+
+@pytest.mark.slow
+def test_planned_cards_are_plans(tmp_path):
+    r"""A \planned card is a plan: its undeclared symbols and missing \defterm are not problems, it has no Approve
+    button, its heading says planned, and the export marks it. A written card beside it is still checked."""
+    src = (FIX / "clean.tex").read_text().replace(r"\usepackage{symbols}", r"\usepackage[approve]{symbols}")
+    plan = (r"\begin{definition}[a later thing]\label{def:later}" "\n" r"\planned" "\n"
+            r"Will define $\zeta_q$ from $\Xi$, with a term." "\n" r"\end{definition}" "\n")
+    bad = r"\begin{definition}[a bad thing]\label{def:bad}" "\n" r"Uses $\Psi$." "\n" r"\end{definition}" "\n"
+    src = src.replace(r"\end{document}", plan + bad + r"\end{document}")
+    (tmp_path / "planned.tex").write_text(src)
+    env = dict(os.environ, PATH=f"{BIN}:{os.environ['PATH']}")
+    r = subprocess.run([str(BIN / "plastex"), "--plugins", "leanblueprint", "leanblueprint_symbols", "--", "planned.tex"],
+                       cwd=tmp_path, env=env, capture_output=True, text=True, timeout=600)
+    assert r.returncode == 0, r.stderr[-2000:]
+    problems = json.loads((tmp_path / "symbols-report.json").read_text())
+    assert {p["label"] for p in problems} == {"def:bad"}
+    html = "".join(f.read_text() for f in (tmp_path / "planned").glob("*.html"))
+    assert 'data-label="def:later"' not in html and 'data-label="def:bad"' in html
+    assert "proofchip-planned" in html
+    data = json.loads((tmp_path / "blueprint-data.json").read_text())
+    by = {i["label"]: i for i in data["items"]}
+    assert by["def:later"]["planned"] is True and by["def:bad"]["planned"] is False
+    assert r"\planned" not in by["def:later"]["tex"]

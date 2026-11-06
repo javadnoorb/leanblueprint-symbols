@@ -68,7 +68,8 @@ STATIC = PKG.parent / "static"
 DEFAULT_ENVS = ["definition", "lemma", "theorem", "proposition", "corollary", "conjecture", "remark", "example",
                 "notation", "proof"]
 # what a statement's heading says about its proof (the chip), most established first
-PROOF_STATES = {"verified": "verified in Lean", "paper": "proof on paper", "none": "no proof yet", "open": "open"}
+PROOF_STATES = {"verified": "verified in Lean", "paper": "proof on paper", "none": "no proof yet", "open": "open",
+                "planned": "planned"}
 PROOF_KINDS = {"lemma", "theorem", "proposition", "corollary"}
 STATUS_COLORS = {"verified": ("#1CAC78", "Dark green"), "stated": ("#B0ECA3", "Light green"),
                  "sorry-free": ("#A3D6FF", "Light blue"), "missing": ("#FFAA33", "Orange")}
@@ -123,6 +124,16 @@ class contains(Command):
         Command.digest(self, tokens)
         refs = [x.strip() for x in str(self.attributes["refs"]).split(",") if x.strip()]
         self.parentNode.userdata.setdefault("contains", []).extend(refs)
+
+
+class planned(Command):
+    r"""\planned: a placeholder card. Its text is a plan of what the card will say, not the card, so the checker does not
+    read it (its symbols are not declared yet), it gets no Approve button, and its heading says "planned"."""
+    args = ""
+
+    def digest(self, tokens):
+        Command.digest(self, tokens)
+        self.parentNode.userdata["planned"] = True
 
 
 class defterm(Command):
@@ -206,6 +217,7 @@ def ProcessOptions(options, document):
             defs, bnds, terms = list(n.userdata.get("defines", [])), list(n.userdata.get("binds", [])), \
                 list(n.userdata.get("terms", []))
             leans = list(n.userdata.get("defines_lean", []))
+            is_planned = bool(n.userdata.get("planned"))
             conts = list(n.userdata.get("contains", []))
             for d in n.allChildNodes if hasattr(n, "allChildNodes") else []:
                 if d is n or _owner(d.parentNode, ids) is not n:
@@ -215,6 +227,7 @@ def ProcessOptions(options, document):
                 terms += d.userdata.get("terms", []) if hasattr(d, "userdata") else []
                 leans += d.userdata.get("defines_lean", []) if hasattr(d, "userdata") else []
                 conts += d.userdata.get("contains", []) if hasattr(d, "userdata") else []
+                is_planned = is_planned or bool(getattr(d, "userdata", {}).get("planned"))
             maths = [m for m in n.getElementsByTagName(("math", "displaymath", "equation", "equation*", "align",
                                                          "align*")) if _owner(m.parentNode, ids) is n]
             kind = getattr(n, "tagName", n.nodeName)
@@ -229,15 +242,18 @@ def ProcessOptions(options, document):
             names = [x.strip() for x in re.split(r",| and ", title.textContent) if x.strip()] \
                 if title is not None and kind == "definition" else []
             items.append({"label": label, "kind": kind, "defines": defs, "source": src, "names": names, "binds": bnds, "terms": terms, "leans": dict(leans), "contains": conts,
-                          "uses": uses, "parts": parts,
+                          "uses": uses, "parts": parts, "planned": is_planned,
                           "math": [m.source for m in maths], "text": n.textContent, "parent": parent_label,
                           "node": n})
         return items
 
     def check() -> None:
         items = collect()
-        problems = core.check([{k: v for k, v in it.items() if k not in ("node", "leans", "contains")} for it in items])
-        for it in items:   # a definition with a name introduces that name as a term in its text (user, 2026-11-01)
+        # a planned card (\planned) is a plan, not mathematics: the checks read only the written cards and their proofs
+        planned_labels = {it["label"] for it in items if it.get("planned")}
+        written = [it for it in items if not it.get("planned") and it.get("parent") not in planned_labels]
+        problems = core.check([{k: v for k, v in it.items() if k not in ("node", "leans", "contains", "planned")} for it in written])
+        for it in written:   # a definition with a name introduces that name as a term in its text (user, 2026-11-01)
             title = getattr(it["node"], "title", None)
             if it["kind"] != "definition" or title is None:
                 continue
@@ -345,6 +361,8 @@ def ProcessOptions(options, document):
     # the proof chip on each statement's heading (leanblueprint's header-extras hook)
     def proof_state(node):
         kind = getattr(node, "thmName", None) or getattr(node, "tagName", "")
+        if node.userdata.get("planned") or any(getattr(d, "userdata", {}).get("planned") for d in getattr(node, "allChildNodes", [])):
+            return "planned"
         if kind == "conjecture":
             return "open"
         if kind not in PROOF_KINDS:
@@ -385,7 +403,7 @@ def ProcessOptions(options, document):
         for node in document.getElementsByTagName(tuple(e for e in envs if e != "proof")):
             if node.id and not re.fullmatch(r"a\d+", node.id):
                 node.userdata["symbols_sha"] = card_sha(node)
-                if approve:
+                if approve and node.userdata.get("symbols_proof") != "planned":
                     node.userdata["symbols_approve"] = True
 
     document.addPostParseCallbacks(176, apply_shas)
@@ -398,7 +416,7 @@ def ProcessOptions(options, document):
 
     # an item's text for other applications: its TeX without the environment and the metadata commands
     META = ("label", "uses", "lean", "leanok", "notready", "proves", "mathlibok", "discussion", "defines", "binds",
-            "contains")
+            "contains", "planned")
 
     def body_tex(src: str) -> str:
         src = re.sub(r"^\\begin\{[^}]*\}(\[[^\]]*\])?", "", src.strip())
@@ -455,7 +473,8 @@ def ProcessOptions(options, document):
                                  "status": state["node_status"](n) if "node_status" in state else None,
                                  "proof": n.userdata.get("symbols_proof"), "sha": n.userdata.get("symbols_sha"),
                                  "number": n.ref.textContent if getattr(n, "ref", None) is not None else None,
-                                 "tex": body_tex(n.source or ""), "where": section_of(n), "contains": it.get("contains", [])})
+                                 "tex": body_tex(n.source or ""), "where": section_of(n), "contains": it.get("contains", []),
+                                 "planned": bool(it.get("planned"))})
         for key, e in state.get("table", {}).items():
             out["symbols"].append({"sym": e["sym"], "type": e["type"], "label": e["label"], "lean": e.get("lean")})
         outdir = Path(document.userdata.get("working-dir", ".")).resolve()

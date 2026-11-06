@@ -46,6 +46,7 @@ div.thm_header_extras { display: inline-flex; align-items: center; }
 .proofchip-paper { color: var(--chip-paper); background: var(--chip-paper-bg); }
 .proofchip-none { color: var(--chip-none); background: var(--chip-none-bg); }
 .proofchip-open { color: var(--chip-open); background: var(--chip-open-bg); }
+.proofchip-planned { color: var(--chip-none); background: transparent; border: 1px dashed currentColor; }
 
 /* approvals (option approve): the foot of each card */
 .sym-foot { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: .6em; padding-top: .5em;
