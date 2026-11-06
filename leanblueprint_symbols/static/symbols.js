@@ -210,7 +210,12 @@
       }
       // its own button by class: a host page may add buttons to the foot (before this one), and "the first button"
       // would then be one of those, relabelled (2026-11-01: the console's Note button read "Approve")
-      const st = stateOf(c), b = foot.querySelector('.sym-approve-btn'), t = foot.querySelector('.sym-astate');
+      const b0 = foot.querySelector('.sym-approve-btn');
+      if (c.m.dataset.planned === '1') {   // a plan of a card, not the card: nothing to approve yet
+        foot.dataset.state = 'planned'; b0.hidden = true; foot.querySelector('.sym-astate').textContent = '';
+        c.card.classList.add('sym-planned'); continue;
+      }
+      const st = stateOf(c), b = b0, t = foot.querySelector('.sym-astate');
       foot.dataset.state = st;
       c.card.classList.toggle('sym-approved', st === 'ok');
       t.textContent = st === 'ok' ? '✓ Approved' : st === 'changed' ? 'Changed since you approved it' : '';

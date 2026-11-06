@@ -128,7 +128,7 @@ class contains(Command):
 
 class planned(Command):
     r"""\planned: a placeholder card. Its text is a plan of what the card will say, not the card, so the checker does not
-    read it (its symbols are not declared yet), it gets no Approve button, and its heading says "planned"."""
+    read it (its symbols are not declared yet), it gets no Approve button (its foot keeps the host's buttons), and its heading says "planned"."""
     args = ""
 
     def digest(self, tokens):
@@ -403,12 +403,14 @@ def ProcessOptions(options, document):
         for node in document.getElementsByTagName(tuple(e for e in envs if e != "proof")):
             if node.id and not re.fullmatch(r"a\d+", node.id):
                 node.userdata["symbols_sha"] = card_sha(node)
-                if approve and node.userdata.get("symbols_proof") != "planned":
+                if approve:   # a planned card keeps the marker (a host finds cards by it) but gets no Approve button
                     node.userdata["symbols_approve"] = True
+                    node.userdata["symbols_planned"] = node.userdata.get("symbols_proof") == "planned"
 
     document.addPostParseCallbacks(176, apply_shas)
     marker = Template('{% if obj.userdata.symbols_approve %}<span class="sym-approve" hidden data-label="{{ obj.id }}" '
-                      'data-sha="{{ obj.userdata.symbols_sha }}"></span>{% endif %}')
+                      'data-sha="{{ obj.userdata.symbols_sha }}"{% if obj.userdata.symbols_planned %} data-planned="1"{% endif %}>'
+                      '</span>{% endif %}')
     document.userdata.setdefault("thm_header_extras_tpl", []).append(marker)
     chip = Template('{% if obj.userdata.symbols_proof %}<span class="proofchip proofchip-{{ obj.userdata.symbols_proof }}">'
                     '{{ obj.userdata.symbols_proof_text }}</span>{% endif %}')

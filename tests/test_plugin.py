@@ -221,7 +221,9 @@ def test_planned_cards_are_plans(tmp_path):
     problems = json.loads((tmp_path / "symbols-report.json").read_text())
     assert {p["label"] for p in problems} == {"def:bad"}
     html = "".join(f.read_text() for f in (tmp_path / "planned").glob("*.html"))
-    assert 'data-label="def:later"' not in html and 'data-label="def:bad"' in html
+    later = re.search(r'<span class="sym-approve"[^>]*data-label="def:later"[^>]*>', html).group(0)
+    bad_m = re.search(r'<span class="sym-approve"[^>]*data-label="def:bad"[^>]*>', html).group(0)
+    assert 'data-planned="1"' in later and "data-planned" not in bad_m
     assert "proofchip-planned" in html
     data = json.loads((tmp_path / "blueprint-data.json").read_text())
     by = {i["label"]: i for i in data["items"]}
