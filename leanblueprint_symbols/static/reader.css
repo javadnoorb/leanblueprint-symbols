@@ -47,8 +47,13 @@ code, .ttfamily, .texttt { font-family: var(--r-mono); font-size: .86em; }
 ul, ol { font-size: 1em; padding-left: 1.4em; }
 li > p { margin: .3em 0; }
 
+/* prose: a word longer than the line (a file name, a URL) wraps instead of widening the page (2026-11-07, an imported paper) */
+p, li, dd, td, blockquote { overflow-wrap: break-word; }
+
 /* formulas: symbol links are coloured, not underlined; wide displays scroll inside themselves */
 mjx-container { color: var(--r-fg); }
+/* in italic text the letter before a space leans into it, and "If $p$" read as "Ifp": a little room before the formula */
+:is(em, i) mjx-container[jax]:not([display="true"]) { margin-left: .14em; }
 mjx-container[jax] a { fill: var(--r-link) !important; stroke: var(--r-link) !important; color: var(--r-link); }
 mjx-container[jax] a:hover { fill: var(--r-link-h) !important; stroke: var(--r-link-h) !important; }
 mjx-container a rect[data-hitbox] { fill: none !important; stroke: none !important; }   /* MathJax's invisible hit area */

@@ -127,10 +127,18 @@
     update();
   }
   // inline formulas wider than their line: scroll inside themselves (reader.css .r-wide), not the page
+  // the line a formula sits on: its nearest block ancestor. An inline parent (an \emph run) measures 0 wide, and every
+  // formula inside one was taken for too wide and faded after its first letter (2026-11-07, an imported paper)
+  const blockOf = (el) => { let p = el.parentElement; while (p && getComputedStyle(p).display.startsWith('inline')) p = p.parentElement; return p; };
   function markWide() {
+    // MathJax gives some displayed formulas (equation numbers, width="full") a min-width, which beats max-width and
+    // widens the page: the minimum goes to the formula itself, and its box scrolls instead
+    document.querySelectorAll('mjx-container[display="true"]').forEach((m) => {
+      if (m.style.minWidth && m.firstElementChild) { m.firstElementChild.style.minWidth = m.style.minWidth; m.style.minWidth = '0'; }
+    });
     document.querySelectorAll('mjx-container[jax]:not([display="true"])').forEach((m) => {
       m.classList.remove('r-wide');
-      const host = m.parentElement;
+      const host = blockOf(m);
       if (host && m.getBoundingClientRect().width > host.clientWidth + 1) m.classList.add('r-wide');
     });
     // displayed formulas that scroll: the fade (reader.css), dropped once scrolled to the end
