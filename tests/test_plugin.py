@@ -212,6 +212,7 @@ def test_planned_cards_are_plans(tmp_path):
     plan = (r"\begin{definition}[a later thing]\label{def:later}" "\n" r"\planned" "\n"
             r"Will define $\zeta_q$ from $\Xi$, with a term." "\n" r"\end{definition}" "\n")
     bad = r"\begin{definition}[a bad thing]\label{def:bad}" "\n" r"Uses $\Psi$." "\n" r"\end{definition}" "\n"
+    bad += r"\begin{definition}[Axiom P1]\label{def:p1}" "\n" r"Every thing is a thing." "\n" r"\end{definition}" "\n"
     src = src.replace(r"\end{document}", plan + bad + r"\end{document}")
     (tmp_path / "planned.tex").write_text(src)
     env = dict(os.environ, PATH=f"{BIN}:{os.environ['PATH']}")

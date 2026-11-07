@@ -71,6 +71,8 @@ DEFAULT_ENVS = ["definition", "lemma", "theorem", "proposition", "corollary", "c
 PROOF_STATES = {"verified": "verified in Lean", "paper": "proof on paper", "none": "no proof yet", "open": "open",
                 "planned": "planned"}
 PROOF_KINDS = {"lemma", "theorem", "proposition", "corollary"}
+# a title that only numbers the item, as an imported paper does ("Definition 3", "Axiom P1", "Theorem 2.4")
+NUMBERING = re.compile(r"(Definition|Axiom|Theorem|Lemma|Proposition|Corollary|Remark|Example|Postulate|Principle)\s+[A-Za-z]?[0-9][0-9.a-z]*'?")
 STATUS_COLORS = {"verified": ("#1CAC78", "Dark green"), "stated": ("#B0ECA3", "Light green"),
                  "sorry-free": ("#A3D6FF", "Light blue"), "missing": ("#FFAA33", "Orange")}
 
@@ -256,6 +258,8 @@ def ProcessOptions(options, document):
         for it in written:   # a definition with a name introduces that name as a term in its text (user, 2026-11-01)
             title = getattr(it["node"], "title", None)
             if it["kind"] != "definition" or title is None:
+                continue
+            if NUMBERING.fullmatch(title.textContent.strip()):   # an imported paper's own label ("Definition 3", "Axiom P1"), not a name
                 continue
             names = [re.sub(r"^(the|a|an) ", "", x.strip().lower()) for x in re.split(r",| and ", title.textContent) if x.strip()]
             terms = {t.lower() for t in it.get("terms", [])}
