@@ -61,7 +61,11 @@ LAYOUT = {  # commands that only shape the formula
     r"\left", r"\right", r"\bigl", r"\bigr", r"\Bigl", r"\Bigr", r"\biggl", r"\biggr", r"\big", r"\Big", r"\,",
     r"\;", r"\!", r"\displaystyle", r"\textstyle", r"\limits", r"\nolimits", r"\begin", r"\end", r"\cases",
     r"\\", r"\{", r"\}", r"\|", r"\langle", r"\rangle", r"\lvert", r"\rvert", r"\lVert", r"\rVert", r"\href",
+    r"\notag", r"\nonumber",
 }
+# an equation's number or label is not a symbol, nor are the letters inside it (2026-11-08: a paper's \tag{1} read as an
+# undeclared symbol, and the model rewrote the equation to dodge the checker)
+ARG_SKIPPED = {r"\tag", r"\label"}
 ACCENTS = {r"\tilde", r"\hat", r"\bar", r"\overline", r"\underline", r"\widetilde", r"\widehat", r"\vec", r"\dot"}
 FONTS = {r"\mathcal", r"\mathbb", r"\mathrm", r"\mathbf", r"\mathsf", r"\mathfrak", r"\operatorname", r"\boldsymbol"}
 GLOSS = [r"\bi\.e\.", r"\bso that\b", r"\bin words\b", r"\bthis is why\b", r"\bnote that\b",
@@ -128,6 +132,12 @@ def _scan(s: str, lo: int, hi: int) -> list:
                 inner = _scan(s, a0, a0 + len(arg))
                 base = f"{cmd} {inner[0][0][0]}" if inner else None
                 out.extend(inner[1:])
+            elif cmd in ARG_SKIPPED:   # the command and its argument
+                if j < hi and s[j] == "*":
+                    j += 1
+                _, _, j = _group(s, j) if j < hi and s[j] == "{" else (None, None, j)
+                i = j
+                continue
             elif cmd in LAYOUT or cmd in STANDARD or not cmd[1:].isalpha():
                 i = j
                 continue

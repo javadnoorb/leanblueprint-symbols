@@ -227,3 +227,13 @@ def test_an_operator_cannot_be_declared_and_the_check_still_runs():
     assert ("untyped", "def:product") not in ks             # the operator's declaration is set aside, not judged
     both = [p for p in check([WIRING, prod]) if p["kind"] == "undeclarable"]
     assert both[0]["detail"].startswith(r"\times is an operator") and "defterm" in both[0]["detail"]
+
+
+def test_an_equation_number_is_not_a_symbol():
+    """McKinsey-Sugar-Suppes, Definition 1.13 (2026-11-08): \\tag{1} read as an undeclared symbol, and the model rewrote the paper's
+    equation to dodge it. \\tag, \\notag, \\nonumber and \\label are layout."""
+    assert tokens(r"x_{11} + x_{12} + \cdots \tag{1}") == tokens(r"x_{11} + x_{12} + \cdots")
+    assert tokens(r"a = b \notag") == tokens(r"a = b") and tokens(r"a \nonumber") == tokens("a")
+    assert tokens(r"a \label{eq:one}") == tokens("a")
+    item = {"label": "def:series", "kind": "definition", "binds": ["x", "n"], "terms": [], "math": [r"x_{n1} + x_{n2} + \cdots \tag{2}"], "text": "A series."}
+    assert ("undeclared", "def:series") not in kinds(check([WIRING, item]))
