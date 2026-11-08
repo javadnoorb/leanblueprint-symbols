@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from leanblueprint_symbols.core import check, tokens  # noqa: E402
+from leanblueprint_symbols.core import check, key_of, tokens  # noqa: E402
 
 WIRING = {"label": "def:wiring", "kind": "definition",
           "defines": [("n", "integer"), ("V", "set"), ("E", "finite set"), ("W", "annotated wiring"),
@@ -237,3 +237,14 @@ def test_an_equation_number_is_not_a_symbol():
     assert tokens(r"a \label{eq:one}") == tokens("a")
     item = {"label": "def:series", "kind": "definition", "binds": ["x", "n"], "terms": [], "math": [r"x_{n1} + x_{n2} + \cdots \tag{2}"], "text": "A series."}
     assert ("undeclared", "def:series") not in kinds(check([WIRING, item]))
+
+
+def test_an_accent_on_a_digit_is_a_symbol_of_its_own():
+    """McKinsey-Sugar-Suppes, Definition 1.9 (2026-11-08): \\defines{\\bar 0_n} registered as declaring n, so a later
+    \\defines{n} was "redeclared". The zero vector's key is its own, with a subscript; n inside it is a use of n."""
+    assert key_of(r"\bar 0_n") == (r"\bar 0", True, "")
+    assert ("n", False, "") in tokens(r"\alpha = \bar 0_n")
+    zero = {"label": "def:zero", "kind": "definition", "defines": [(r"\bar 0_n", "the zero vector")], "binds": ["n"], "terms": [],
+            "math": [r"\bar 0_n"], "text": "The zero vector."}
+    dim = {"label": "def:dim", "kind": "definition", "defines": [("n", "positive integer")], "binds": [], "terms": [], "math": ["n"], "text": "The dimension."}
+    assert ("redeclared", "def:dim") not in kinds(check([zero, dim]))

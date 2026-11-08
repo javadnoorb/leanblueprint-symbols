@@ -130,7 +130,9 @@ def _scan(s: str, lo: int, hi: int) -> list:
             elif cmd in ACCENTS:
                 arg, a0, j = _group(s, j)
                 inner = _scan(s, a0, a0 + len(arg))
-                base = f"{cmd} {inner[0][0][0]}" if inner else None
+                # an accent on a digit (\bar 0_n, the zero vector) is a symbol of its own, its scripts its own: it used to have
+                # no base, and the n of its subscript passed for the declared symbol (2026-11-08, "redeclared: n")
+                base = f"{cmd} {inner[0][0][0]}" if inner else f"{cmd} {_norm(arg)}" if _norm(arg) else None
                 out.extend(inner[1:])
             elif cmd in ARG_SKIPPED:   # the command and its argument
                 if j < hi and s[j] == "*":
