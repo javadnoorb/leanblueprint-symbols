@@ -206,7 +206,9 @@
         foot = document.createElement('div'); foot.className = 'sym-foot';
         foot.innerHTML = '<span class="sym-astate" aria-live="polite"></span><button type="button" class="sym-abtn sym-approve-btn"></button>';
         c.card.appendChild(foot);
-        foot.querySelector('.sym-approve-btn').addEventListener('click', () => toggle(c));
+        // the card as it is when tapped, not as it was when the foot was made: a host may swap the card's text in place
+        // and its hash with it (2026-11-08: Approve after such a swap signed the old hash and was refused)
+        foot.querySelector('.sym-approve-btn').addEventListener('click', () => toggle(cards().find((x) => x.label === c.label) || c));
       }
       // its own button by class: a host page may add buttons to the foot (before this one), and "the first button"
       // would then be one of those, relabelled (2026-11-01: the console's Note button read "Approve")
