@@ -278,6 +278,8 @@ def ProcessOptions(options, document):
         table = {}
         for it in items:
             for sym, ty in it["defines"]:
+                if not core.tokens(sym):   # an operator declared by mistake: reported by the checker, not a symbol
+                    continue
                 table.setdefault(core.key_of(sym), {"sym": sym, "type": ty, "label": it["label"],
                                                      "lean": it.get("leans", {}).get(sym)})
         state.update(items=items, problems=problems, table=table, by_label=by_label)

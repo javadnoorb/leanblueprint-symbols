@@ -213,3 +213,17 @@ def test_remark_a_proof_relies_on():
     assert kinds(check([rem, by_uses])) == [("remark-used", "rem:c")]
     assert kinds(check([rem, _card(""), by_ref])) == [("remark-used", "rem:c")]
     assert check([rem, _card("")]) == []
+
+
+def test_an_operator_cannot_be_declared_and_the_check_still_runs():
+    """A \\defines of \\times or |\\cdot| (McKinsey-Sugar-Suppes repairs, 2026-11-08) used to stop the build with a
+    ValueError, so the reader only saw "the book does not build"; now it is a problem on the card, and the other
+    checks of the book still run."""
+    prod = {"label": "def:product", "kind": "definition", "defines": [(r"\times", "Cartesian product")], "binds": ["A", "B", r"|\cdot|"],
+            "terms": ["Cartesian product"], "math": [r"A \times B", r"n"], "text": "The Cartesian product of $A$ and $B$."}
+    ks = kinds(check([WIRING, prod]))
+    assert ks.count(("undeclarable", "def:product")) == 2
+    assert ("undeclared", "def:product") not in ks          # n is declared by WIRING; A and B are bound here
+    assert ("untyped", "def:product") not in ks             # the operator's declaration is set aside, not judged
+    both = [p for p in check([WIRING, prod]) if p["kind"] == "undeclarable"]
+    assert both[0]["detail"].startswith(r"\times is an operator") and "defterm" in both[0]["detail"]

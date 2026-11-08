@@ -14,7 +14,7 @@ plugin works one level down, on the symbols inside formulas:
   contains). A `\contains` naming no item is a checker problem.
 * **Checks at build time.** The checker reports every symbol used before any item declares it, a symbol declared twice
   (one meaning per symbol), a declaration without a type, a defined term used before its definition, and explanatory
-  phrases ("i.e.", "so that", ...) inside definitions and statements. A definition with a name (its title) must introduce that name as a
+  phrases ("i.e.", "so that", ...) inside definitions and statements. A `\defines` or `\binds` of an operator or a delimiter (`\times`, `|\cdot|`) is reported as undeclarable and set aside (the operation is named by its term; the check goes on). A definition with a name (its title) must introduce that name as a
   `\defterm` in its text, so the reader meets the name before the mathematics. Structure checks: a symbol declared
   inside a lemma, theorem, remark or proof but used by another item (it belongs in a definition of its own); a letter
   bound with two different types in items that depend on each other (one letter, one role); a symbol used in an item

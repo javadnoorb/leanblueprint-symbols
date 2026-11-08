@@ -244,8 +244,33 @@ EXEMPT_FROM_USES = {"notation"}
 DEFINING_KINDS = {"definition", "notation"}
 
 
+def undeclarable(items: list[dict]) -> tuple[list[dict], list[dict]]:
+    r"""Operators and delimiters (\times, \cdot, |\cdot|, \langle\rangle) are notation, not symbols: a \defines or
+    \binds of one is reported ("undeclarable") and set aside, so the rest of the check still runs instead of stopping
+    the build. The items come back with those declarations removed."""
+    problems, out = [], []
+    for it in items:
+        it2 = dict(it)
+        for field, sym_of in (("defines", lambda d: d[0]), ("binds", lambda b: split_bind(b)[0])):
+            keep = []
+            for d in it.get(field, []):
+                sym = sym_of(d)
+                if tokens(sym):
+                    keep.append(d)
+                else:
+                    problems.append({"kind": "undeclarable", "label": it["label"],
+                                     "detail": f"{sym} is an operator or a delimiter, not a symbol, so it cannot be declared: "
+                                               "name the operation with \\defterm and explain its notation in a notation block, or declare the "
+                                               "function by the letter the text gives it"})
+            if field in it2 or keep:
+                it2[field] = keep
+        out.append(it2)
+    return out, problems
+
+
 def check(items: list[dict]) -> list[dict]:
-    problems = _check(items)
+    items, problems = undeclarable(items)
+    problems += _check(items)
     by = {it["label"]: it for it in items}
     # the dependency closure: what each item depends on, directly or through others; a proof through its statement
     deps: dict[str, set] = {}
