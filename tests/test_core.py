@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from leanblueprint_symbols.core import check, key_of, tokens  # noqa: E402
+from leanblueprint_symbols.core import check, key_of, name_key, tokens  # noqa: E402
 
 WIRING = {"label": "def:wiring", "kind": "definition",
           "defines": [("n", "integer"), ("V", "set"), ("E", "finite set"), ("W", "annotated wiring"),
@@ -248,3 +248,11 @@ def test_an_accent_on_a_digit_is_a_symbol_of_its_own():
             "math": [r"\bar 0_n"], "text": "The zero vector."}
     dim = {"label": "def:dim", "kind": "definition", "defines": [("n", "positive integer")], "binds": [], "terms": [], "math": ["n"], "text": "The dimension."}
     assert ("redeclared", "def:dim") not in kinds(check([zero, dim]))
+
+
+def test_a_title_with_a_formula_matches_its_term():
+    """McKinsey-Sugar-Suppes 2.4 (2026-11-08): the title arrives typeset, the term as source; they must compare equal."""
+    assert name_key("n-dimensional system of particle mechanics") == name_key(r"$n$-dimensional system of particle mechanics")
+    assert name_key(r"\(\mathbb R\)-valued map") == name_key("R-valued map")
+    assert name_key("The  Cartesian product") == "cartesian product"
+    assert name_key("parallel vectors") != name_key("parallel")

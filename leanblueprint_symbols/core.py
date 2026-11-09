@@ -256,6 +256,17 @@ EXEMPT_FROM_USES = {"notation"}
 DEFINING_KINDS = {"definition", "notation"}
 
 
+def name_key(text: str) -> str:
+    r"""A definition's name as words, for comparing a title with a \defterm: formula delimiters and braces dropped, a
+    command's backslash dropped, spaces collapsed, lower case, no leading article. The title reaches the checker typeset
+    ("n-dimensional system") and the term as source ("$n$-dimensional system"); both read the same here (2026-11-08)."""
+    t = re.sub(r"\\[()\[\]]|\$", "", text)
+    t = re.sub(r"\\(?:mathrm|text|textbf|emph|mathbf|mathbb|mathcal|mathfrak|mathsf|operatorname)\s*\{?([^{}\s]*)\}?", r"\1", t)   # a font: its letters
+    t = re.sub(r"\\([A-Za-z]+)", r"\1", t).replace("{", "").replace("}", "")
+    t = re.sub(r"\s+", " ", t).strip().lower()
+    return re.sub(r"^(the|a|an) ", "", t)
+
+
 def undeclarable(items: list[dict]) -> tuple[list[dict], list[dict]]:
     r"""Operators and delimiters (\times, \cdot, |\cdot|, \langle\rangle) are notation, not symbols: a \defines or
     \binds of one is reported ("undeclarable") and set aside, so the rest of the check still runs instead of stopping

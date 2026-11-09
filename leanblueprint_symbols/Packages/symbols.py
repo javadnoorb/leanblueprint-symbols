@@ -261,8 +261,8 @@ def ProcessOptions(options, document):
                 continue
             if NUMBERING.fullmatch(title.textContent.strip()):   # an imported paper's own label ("Definition 3", "Axiom P1"), not a name
                 continue
-            names = [re.sub(r"^(the|a|an) ", "", x.strip().lower()) for x in re.split(r",| and ", title.textContent) if x.strip()]
-            terms = {t.lower() for t in it.get("terms", [])}
+            names = [core.name_key(x) for x in re.split(r",| and ", title.textContent) if x.strip()]
+            terms = {core.name_key(t) for t in it.get("terms", [])}   # a formula in the title or the term reads the same in both
             norm = lambda w: re.sub(r"(es|s)$", "", w)  # noqa: E731  (plural or not)
             missing = [n for n in names if not any(norm(n) == norm(t) or norm(n) in norm(t) for t in terms)]
             if missing:
