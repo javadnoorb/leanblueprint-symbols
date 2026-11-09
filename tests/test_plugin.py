@@ -172,6 +172,12 @@ def test_a_named_definition_must_introduce_its_name(tmp_path):
     _build(tmp_path / "b", tex.replace("Let $a=1$.", r"The \defterm{constant} is $a=1$."), {"X.ok": "verified"})
     rep = json.loads((tmp_path / "b" / "symbols-report.json").read_text())
     assert not any(p["kind"] == "unnamed" for p in rep)
+    # a title and a term with a formula in them (McKinsey-Sugar-Suppes, 2026-11-08: the term was stored as an object)
+    (tmp_path / "c").mkdir()
+    tex2 = tex.replace("[the constant]", "[$n$-dimensional constant]").replace("Let $a=1$.", r"The \defterm{$n$-dimensional constant} is $a=1$.")
+    _build(tmp_path / "c", tex2, {"X.ok": "verified"})
+    rep = json.loads((tmp_path / "c" / "symbols-report.json").read_text())
+    assert not any(p["kind"] == "unnamed" for p in rep), rep
 
 
 @pytest.mark.slow

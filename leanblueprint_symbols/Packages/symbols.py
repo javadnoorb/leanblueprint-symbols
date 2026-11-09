@@ -140,14 +140,19 @@ class planned(Command):
 
 class defterm(Command):
     r"""\defterm{term}"""
-    args = "term:str"
+    args = "term"   # not :str, which turns a term with a formula into "<plasTeX.TeXFragment object ...>" (2026-11-08)
 
     def digest(self, tokens):
         Command.digest(self, tokens)
         node = self.parentNode
         while node is not None and node.nodeName in ("par", "#document-fragment"):
             node = node.parentNode
-        self.parentNode.userdata.setdefault("terms", []).append(self.attributes["term"].strip())
+        term = self.attributes["term"]
+        # a term with a formula in it arrives as a fragment, not a string: its source is the term as written (2026-11-08: it
+        # was stored as "<plasTeX.TeXFragment object ...>", and matched no title and linked nothing)
+        term = term if isinstance(term, str) else (getattr(term, "source", None) or getattr(term, "textContent", "") or "")
+        term = re.sub(r"\s+", " ", term)
+        self.parentNode.userdata.setdefault("terms", []).append(term.strip())
 
 
 def _owner(node, items):
